@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PSYCHE ULTRA — 6 AI Modes</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=Fraunces:ital,opsz,wght@0,9..144,300;1,9..144,200&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#050508;--surface:#0d0d14;--surface2:#12121c;--surface3:#1a1a28;
+  --border:rgba(255,255,255,0.06);
+  --accent1:#7c3aed;--accent2:#06b6d4;--accent3:#f59e0b;
+  --text:#e8e8f0;--muted:#6b6b82;
+  --O:#a78bfa;--C:#34d399;--E:#f472b6;--A:#60a5fa;--N:#fb923c;
+  --mode-color:#7c3aed;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;overflow-x:hidden;cursor:none;}
+
+/* ── CURSOR ── */
+.cursor{position:fixed;width:10px;height:10px;background:var(--accent2);border-radius:50%;pointer-events:none;z-index:9999;mix-blend-mode:difference;transform:translate(-50%,-50%);transition:width .2s,height .2s;}
+.cursor-ring{position:fixed;width:32px;height:32px;border:1.5px solid rgba(6,182,212,.4);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:all .12s ease;}
+.cursor.hov{width:18px;height:18px;background:var(--mode-color);}
+.cursor-ring.hov{width:50px;height:50px;border-color:var(--mode-color);}
+
+/* ── BG ── */
+#bg-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:1;opacity:.35;}
+.container{position:relative;z-index:2;}
+.screen{display:none;}.screen.active{display:flex;}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:12px 28px;font-size:13px;z-index:9999;transition:transform .4s cubic-bezier(.34,1.56,.64,1);backdrop-filter:blur(12px);white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+/* ── FIXED BUTTONS ── */
+.top-btn{position:fixed;top:20px;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:8px 14px;font-size:10px;color:var(--muted);cursor:none;transition:all .3s;backdrop-filter:blur(8px);letter-spacing:.06em;}
+.top-btn:hover{color:var(--text);border-color:rgba(255,255,255,.2);}
+#btn-settings{left:20px;}
+#btn-theme{right:140px;}
+#btn-sound{right:20px;}
+.scroll-top{position:fixed;bottom:32px;right:32px;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:none;opacity:0;transition:all .3s;font-size:18px;}
+.scroll-top.vis{opacity:1;}
+
+/* ── MODE SELECTOR (landing) ── */
+#screen-landing{min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;}
+.orb{position:absolute;border-radius:50%;pointer-events:none;animation:orbFloat 8s ease-in-out infinite;}
+.orb1{width:500px;height:500px;background:radial-gradient(circle,rgba(124,58,237,.1),transparent 70%);top:-150px;left:-150px;}
+.orb2{width:400px;height:400px;background:radial-gradient(circle,rgba(6,182,212,.08),transparent 70%);bottom:-100px;right:-100px;animation-delay:-4s;}
+@keyframes orbFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-24px)}}
+
+.logo{font-family:'Syne',sans-serif;font-size:clamp(52px,10vw,120px);font-weight:800;letter-spacing:-.04em;line-height:.9;margin-bottom:8px;animation:fadeD .8s ease both;}
+.logo span{background:linear-gradient(135deg,#fff 30%,var(--accent1) 65%,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo-tag{font-size:clamp(9px,1.2vw,12px);font-family:'DM Mono',monospace;letter-spacing:.3em;color:var(--muted);text-transform:uppercase;margin-bottom:32px;animation:fadeD .8s .1s ease both;}
+
+.landing-sub{font-family:'Fraunces',serif;font-style:italic;font-size:clamp(15px,2vw,20px);color:rgba(232,232,240,.55);max-width:480px;line-height:1.7;margin-bottom:56px;animation:fadeD .8s .2s ease both;}
+
+/* MODE GRID */
+.mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:780px;width:100%;margin-bottom:40px;animation:fadeD .8s .3s ease both;}
+@media(max-width:640px){.mode-grid{grid-template-columns:1fr 1fr;}}
+.mode-card{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:24px 20px;cursor:none;transition:all .3s ease;position:relative;overflow:hidden;text-align:left;}
+.mode-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .3s;}
+.mode-card:hover::before,.mode-card.active-mode::before{opacity:1;}
+.mode-card:hover{transform:translateY(-4px);}
+.mode-card.active-mode{transform:translateY(-4px);}
+.mc-glow{position:absolute;top:-40px;right:-40px;width:120px;height:120px;border-radius:50%;opacity:.15;transition:opacity .3s;}
+.mode-card:hover .mc-glow,.mode-card.active-mode .mc-glow{opacity:.35;}
+.mc-icon{font-size:28px;margin-bottom:10px;display:block;}
+.mc-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;margin-bottom:4px;letter-spacing:-.01em;}
+.mc-desc{font-size:9px;color:var(--muted);line-height:1.6;letter-spacing:.02em;}
+.mc-badge{position:absolute;top:12px;right:12px;font-size:8px;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:100px;border:1px solid;}
+
+/* Mode colors */
+.mode-adaptive{--mc:#7c3aed;}.mode-adaptive::before{background:linear-gradient(135deg,rgba(124,58,237,.08),transparent);}
+.mode-adaptive .mc-name,.mode-adaptive.active-mode .mc-badge{color:#7c3aed;}
+.mode-adaptive .mc-glow{background:#7c3aed;}
+.mode-adaptive.active-mode,.mode-adaptive:hover{border-color:rgba(124,58,237,.4);}
+
+.mode-psych{--mc:#f472b6;}.mode-psych::before{background:linear-gradient(135deg,rgba(244,114,182,.08),transparent);}
+.mode-psych .mc-name,.mode-psych.active-mode .mc-badge{color:#f472b6;}
+.mode-psych .mc-glow{background:#f472b6;}
+.mode-psych.active-mode,.mode-psych:hover{border-color:rgba(244,114,182,.4);}
+
+.mode-emotion{--mc:#fb923c;}.mode-emotion::before{background:linear-gradient(135deg,rgba(251,146,60,.08),transparent);}
+.mode-emotion .mc-name,.mode-emotion.active-mode .mc-badge{color:#fb923c;}
+.mode-emotion .mc-glow{background:#fb923c;}
+.mode-emotion.active-mode,.mode-emotion:hover{border-color:rgba(251,146,60,.4);}
+
+.mode-therapist{--mc:#34d399;}.mode-therapist::before{background:linear-gradient(135deg,rgba(52,211,153,.08),transparent);}
+.mode-therapist .mc-name,.mode-therapist.active-mode .mc-badge{color:#34d399;}
+.mode-therapist .mc-glow{background:#34d399;}
+.mode-therapist.active-mode,.mode-therapist:hover{border-color:rgba(52,211,153,.4);}
+
+.mode-memory{--mc:#60a5fa;}.mode-memory::before{background:linear-gradient(135deg,rgba(96,165,250,.08),transparent);}
+.mode-memory .mc-name,.mode-memory.active-mode .mc-badge{color:#60a5fa;}
+.mode-memory .mc-glow{background:#60a5fa;}
+.mode-memory.active-mode,.mode-memory:hover{border-color:rgba(96,165,250,.4);}
+
+.mode-predict{--mc:#f59e0b;}.mode-predict::before{background:linear-gradient(135deg,rgba(245,158,11,.08),transparent);}
+.mode-predict .mc-name,.mode-predict.active-mode .mc-badge{color:#f59e0b;}
+.mode-predict .mc-glow{background:#f59e0b;}
+.mode-predict.active-mode,.mode-predict:hover{border-color:rgba(245,158,11,.4);}
+
+.active-check{display:none;position:absolute;top:12px;left:12px;width:20px;height:20px;border-radius:50%;align-items:center;justify-content:center;font-size:10px;}
+.mode-card.active-mode .active-check{display:flex;}
+
+.btn-launch{background:linear-gradient(135deg,var(--accent1),var(--accent2));border:none;border-radius:100px;padding:20px 56px;color:white;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:none;transition:all .3s ease;animation:fadeD .8s .4s ease both;position:relative;overflow:hidden;}
+.btn-launch::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--accent2),var(--accent1));opacity:0;transition:opacity .3s;}
+.btn-launch:hover{transform:scale(1.04);box-shadow:0 20px 60px rgba(124,58,237,.45);}
+.btn-launch:hover::before{opacity:1;}
+.btn-launch span{position:relative;z-index:1;}
+
+/* active mode HUD */
+.mode-hud{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:150;display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:8px 18px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;backdrop-filter:blur(12px);opacity:0;transition:opacity .4s;pointer-events:none;}
+.mode-hud.vis{opacity:1;}
+.mode-hud-dot{width:7px;height:7px;border-radius:50%;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── FORM ── */
+#screen-form{min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;}
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:52px;max-width:520px;width:100%;position:relative;overflow:hidden;animation:slideUp .5s ease both;}
+.form-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--mode-color),var(--accent2));}
+.form-mode-badge{display:inline-flex;align-items:center;gap:8px;border-radius:100px;padding:5px 14px;font-size:9px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:20px;border:1px solid;color:var(--mode-color);border-color:var(--mode-color);background:rgba(0,0,0,.2);}
+.form-title{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;margin-bottom:6px;}
+.form-sub{color:var(--muted);font-size:12px;margin-bottom:28px;line-height:1.65;}
+.field{margin-bottom:18px;}
+.field label{display:block;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.field input,.field select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 18px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;outline:none;transition:all .3s;cursor:none;}
+.field input:focus,.field select:focus{border-color:var(--mode-color);box-shadow:0 0 0 3px color-mix(in srgb,var(--mode-color) 15%,transparent);}
+.field input::placeholder{color:var(--muted);}
+.interest-tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px;}
+.int-tag{padding:6px 13px;border-radius:100px;border:1px solid var(--border);font-size:10px;color:var(--muted);cursor:none;transition:all .2s;background:var(--surface2);}
+.int-tag.sel{border-color:var(--mode-color);color:var(--mode-color);background:rgba(0,0,0,.3);}
+.int-tag:hover{border-color:rgba(255,255,255,.2);color:var(--text);}
+.mood-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+.mood-btn{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 6px;text-align:center;cursor:none;transition:all .2s;font-size:18px;}
+.mood-btn span{display:block;font-size:8px;color:var(--muted);margin-top:3px;}
+.mood-btn.sel{border-color:var(--mode-color);}
+.mood-btn:hover{transform:translateY(-2px);}
+.btn-go{width:100%;background:linear-gradient(135deg,var(--mode-color),var(--accent2));border:none;border-radius:12px;padding:18px;color:white;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:none;transition:all .3s;margin-top:8px;}
+.btn-go:hover{transform:translateY(-2px);box-shadow:0 16px 40px rgba(0,0,0,.4);}
+
+/* emotion meter (Emotion-Aware Mode) */
+.emotion-meter{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:18px;}
+.em-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.em-sliders{display:flex;flex-direction:column;gap:10px;}
+.em-row{display:flex;align-items:center;gap:12px;}
+.em-name{font-size:10px;width:70px;flex-shrink:0;color:var(--muted);}
+.em-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:100px;outline:none;cursor:none;background:var(--surface3);}
+.em-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;cursor:none;}
+.em-val{font-size:10px;width:20px;text-align:right;color:var(--muted);}
+
+/* therapist mode conversation panel */
+.therapist-hint{background:linear-gradient(135deg,rgba(52,211,153,.06),rgba(52,211,153,.02));border:1px solid rgba(52,211,153,.15);border-radius:12px;padding:14px 18px;margin-bottom:18px;font-size:11px;color:rgba(52,211,153,.8);line-height:1.6;}
+.therapist-hint::before{content:'🧬 AI Therapist Note: ';font-weight:700;}
+
+/* ── GENERATING ── */
+#screen-generating{min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;}
+.gem-spinner{width:90px;height:90px;margin:0 auto 32px;position:relative;}
+.gem-ring{position:absolute;inset:0;border-radius:50%;border:2px solid transparent;animation:spin 1s linear infinite;}
+.gem-ring:nth-child(2){inset:12px;animation-duration:1.6s;animation-direction:reverse;}
+.gem-ring:nth-child(3){inset:24px;animation-duration:2.4s;}
+.gem-inner{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.gen-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;margin-bottom:8px;}
+.gen-sub{color:var(--muted);font-size:12px;margin-bottom:28px;}
+.gen-steps{text-align:left;max-width:380px;width:100%;margin-bottom:20px;}
+.gen-step{display:flex;align-items:center;gap:12px;padding:9px 0;font-size:11px;color:var(--muted);opacity:0;transition:all .4s;border-bottom:1px solid var(--border);}
+.gen-step:last-child{border:none;}
+.gen-step.active{opacity:1;color:var(--accent2);}
+.gen-step.done{opacity:.5;color:var(--C);}
+.gen-step-icon{width:20px;text-align:center;font-size:13px;}
+.gen-stream{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;max-width:480px;width:100%;min-height:52px;font-size:11px;color:var(--muted);line-height:1.7;text-align:left;}
+.stream-cursor{animation:blink 1s infinite;color:var(--accent2);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* prediction pulse panel */
+.predict-panel{display:none;max-width:480px;width:100%;margin-top:16px;}
+.predict-panel.show{display:block;}
+.predict-title{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent3);margin-bottom:8px;}
+.predict-bars{display:flex;gap:4px;}
+.predict-bar{height:32px;border-radius:6px;flex:1;transition:all .8s ease;position:relative;overflow:hidden;}
+.predict-bar-fill{position:absolute;bottom:0;width:100%;border-radius:6px;transition:height 1s ease;}
+.predict-bar-label{position:absolute;bottom:2px;width:100%;text-align:center;font-size:7px;font-weight:700;color:white;letter-spacing:.05em;}
+
+/* ── TEST SCREEN ── */
+#screen-test{min-height:100vh;flex-direction:column;padding:36px 20px;max-width:760px;margin:0 auto;}
+.test-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border);}
+.test-logo{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;}
+.test-meta{display:flex;align-items:center;gap:10px;}
+.q-counter{font-size:11px;color:var(--muted);}
+
+/* Mode badge in test */
+.mode-pill{display:flex;align-items:center;gap:6px;border-radius:100px;padding:5px 12px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;border:1px solid;transition:all .4s;}
+.mode-pill-dot{width:6px;height:6px;border-radius:50%;animation:pulse 1.5s infinite;}
+
+/* EMOTION LIVE GAUGE (emotion-aware mode) */
+.emotion-live-bar{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 16px;margin-bottom:18px;display:none;}
+.emotion-live-bar.show{display:block;}
+.elb-title{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.elb-row{display:flex;align-items:center;gap:10px;margin-bottom:5px;}
+.elb-label{font-size:9px;width:56px;flex-shrink:0;}
+.elb-track{flex:1;height:5px;background:var(--surface2);border-radius:100px;overflow:hidden;}
+.elb-fill{height:100%;border-radius:100px;transition:width 1s ease;}
+.elb-val{font-size:9px;width:24px;text-align:right;color:var(--muted);}
+
+/* PSYCHOLOGIST insight bubble (psych mode) */
+.psych-bubble{display:none;background:linear-gradient(135deg,rgba(244,114,182,.06),rgba(124,58,237,.04));border:1px solid rgba(244,114,182,.2);border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:11px;line-height:1.65;color:rgba(232,232,240,.8);transition:all .4s;}
+.psych-bubble.show{display:block;}
+.psych-bubble-label{font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:#f472b6;margin-bottom:5px;display:flex;align-items:center;gap:6px;}
+
+/* MEMORY panel */
+.memory-panel{display:none;background:var(--surface);border:1px solid rgba(96,165,250,.2);border-radius:12px;padding:12px 16px;margin-bottom:18px;}
+.memory-panel.show{display:block;}
+.mem-title{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#60a5fa;margin-bottom:8px;}
+.mem-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.mem-chip{font-size:9px;padding:3px 10px;border-radius:100px;border:1px solid rgba(96,165,250,.3);color:rgba(96,165,250,.8);}
+
+/* PREDICTIVE next-q hint */
+.predict-hint{display:none;font-size:9px;color:var(--accent3);letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:6px;opacity:.7;}
+.predict-hint.show{display:flex;}
+
+/* Progress segs */
+.progress-segs{display:flex;gap:3px;margin-bottom:24px;}
+.seg{height:4px;border-radius:100px;flex:1;transition:all .5s ease;}
+
+/* Answer map */
+.answer-map{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:18px;}
+.ans-dot{width:10px;height:10px;border-radius:3px;background:var(--surface2);border:1px solid var(--border);transition:all .3s;}
+.ans-dot.answered{background:var(--mode-color);border-color:var(--mode-color);}
+.ans-dot.current{background:var(--accent2);border-color:var(--accent2);box-shadow:0 0 6px var(--accent2);}
+
+.trait-indicator{display:inline-flex;align-items:center;gap:10px;margin-bottom:24px;padding:7px 14px;border-radius:100px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;border:1px solid;transition:all .4s;}
+.trait-dot{width:6px;height:6px;border-radius:50%;}
+
+.q-card{animation:slideUp .4s ease both;}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeD{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
+
+.q-meta{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.q-ai-tag{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent2);opacity:.7;display:flex;align-items:center;gap:4px;}
+.q-ai-tag::before{content:'✦';}
+.q-cat{font-size:9px;color:var(--muted);background:var(--surface2);border-radius:100px;padding:2px 10px;}
+.q-num{font-size:10px;color:var(--muted);letter-spacing:.1em;margin-bottom:10px;}
+.q-text{font-family:'Fraunces',serif;font-size:clamp(19px,2.8vw,26px);font-weight:300;line-height:1.55;margin-bottom:32px;color:rgba(232,232,240,.95);}
+
+/* THERAPIST empathy response (therapist mode) */
+.therapist-response{display:none;background:linear-gradient(135deg,rgba(52,211,153,.05),transparent);border:1px solid rgba(52,211,153,.15);border-radius:12px;padding:12px 16px;margin-bottom:20px;font-size:11px;line-height:1.7;color:rgba(232,232,240,.75);transition:all .4s;}
+.therapist-response.show{display:block;}
+.therapist-response-label{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#34d399;margin-bottom:5px;}
+
+.scale-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:12px;}
+.scale-buttons{display:flex;gap:8px;justify-content:center;margin-bottom:32px;}
+.scale-btn{flex:1;max-width:78px;aspect-ratio:1;background:var(--surface2);border:1px solid var(--border);border-radius:14px;color:var(--muted);font-family:'Syne',sans-serif;font-size:17px;font-weight:700;cursor:none;transition:all .2s;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;overflow:hidden;}
+.scale-btn .btn-emoji{font-size:11px;opacity:0;transition:opacity .2s;position:absolute;top:5px;}
+.scale-btn:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.3);color:white;border-color:rgba(255,255,255,.2);}
+.scale-btn.selected{border-color:var(--mode-color);background:color-mix(in srgb,var(--mode-color) 20%,transparent);color:white;transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.3);}
+.scale-btn:hover .btn-emoji,.scale-btn.selected .btn-emoji{opacity:1;}
+.q-nav{display:flex;gap:10px;}
+.btn-back{background:none;border:1px solid var(--border);border-radius:10px;padding:12px 20px;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;cursor:none;transition:all .2s;}
+.btn-back:hover{border-color:rgba(255,255,255,.2);color:var(--text);}
+.btn-back:disabled{opacity:.3;pointer-events:none;}
+.btn-next{flex:1;background:linear-gradient(135deg,var(--mode-color),var(--accent2));border:none;border-radius:12px;padding:17px;color:white;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:none;transition:all .3s;opacity:.4;pointer-events:none;}
+.btn-next.active{opacity:1;pointer-events:all;}
+.btn-next.active:hover{transform:translateY(-2px);box-shadow:0 16px 40px rgba(0,0,0,.4);}
+
+/* ── ANALYZING ── */
+#screen-analyzing{min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;}
+.analyze-orb{width:120px;height:120px;position:relative;margin:0 auto 36px;}
+.an-ring{position:absolute;inset:0;border-radius:50%;border:2px solid transparent;animation:spin 1.2s linear infinite;}
+.an-ring:nth-child(2){inset:14px;animation-direction:reverse;animation-duration:1.8s;}
+.an-ring:nth-child(3){inset:28px;animation-duration:2.4s;}
+.an-brain{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:36px;}
+.analyze-title{font-family:'Syne',sans-serif;font-size:24px;font-weight:700;margin-bottom:10px;}
+.analyze-sub{color:var(--muted);font-size:12px;margin-bottom:28px;max-width:380px;}
+.analyze-stream{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 22px;max-width:500px;width:100%;font-size:11px;color:var(--muted);line-height:1.8;min-height:72px;}
+
+/* MEMORY timeline (memory mode - analyzing) */
+.memory-timeline{display:none;max-width:500px;width:100%;margin-top:16px;}
+.memory-timeline.show{display:block;}
+.mt-title{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#60a5fa;margin-bottom:10px;}
+.mt-items{display:flex;flex-direction:column;gap:6px;}
+.mt-item{display:flex;align-items:center;gap:10px;font-size:10px;color:var(--muted);padding:8px 12px;background:var(--surface);border:1px solid rgba(96,165,250,.15);border-radius:8px;opacity:0;animation:slideUp .4s ease both;}
+.mt-dot{width:8px;height:8px;border-radius:50%;background:#60a5fa;flex-shrink:0;}
+
+/* ── RESULT ── */
+#screen-result{min-height:100vh;flex-direction:column;padding:56px 20px;max-width:960px;margin:0 auto;}
+#confetti-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:3;}
+
+.result-mode-badge{display:inline-flex;align-items:center;gap:8px;border-radius:100px;padding:5px 16px;font-size:9px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:20px;border:1px solid;color:var(--mode-color);border-color:var(--mode-color);background:rgba(0,0,0,.2);}
+.result-name{font-family:'Fraunces',serif;font-style:italic;font-size:18px;color:rgba(232,232,240,.5);margin-bottom:12px;}
+.result-emoji{font-size:72px;display:block;margin-bottom:14px;animation:popIn .6s cubic-bezier(.34,1.56,.64,1) both;filter:drop-shadow(0 0 24px var(--mode-color));}
+@keyframes popIn{from{transform:scale(0) rotate(-20deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
+.result-type{font-family:'Syne',sans-serif;font-size:clamp(32px,7vw,72px);font-weight:800;letter-spacing:-.03em;line-height:1;margin-bottom:18px;background:linear-gradient(135deg,#fff 20%,var(--mode-color) 60%,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.result-desc{font-family:'Fraunces',serif;font-size:clamp(15px,2.2vw,19px);font-weight:300;color:rgba(232,232,240,.7);max-width:640px;margin:0 auto 16px;line-height:1.8;}
+.rarity-badge{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--accent3);border-radius:100px;padding:5px 14px;font-size:10px;color:var(--accent3);background:rgba(245,158,11,.06);margin-top:10px;}
+
+/* THERAPIST session summary (therapist mode result) */
+.therapist-session{display:none;background:linear-gradient(135deg,rgba(52,211,153,.06),rgba(52,211,153,.02));border:1px solid rgba(52,211,153,.2);border-radius:18px;padding:28px;margin-bottom:28px;}
+.therapist-session.show{display:block;}
+.ts-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#34d399;margin-bottom:4px;letter-spacing:.05em;}
+.ts-sub{font-size:10px;color:var(--muted);margin-bottom:16px;}
+.ts-insights{display:flex;flex-direction:column;gap:10px;}
+.ts-insight{display:flex;gap:12px;padding:10px 14px;background:var(--surface);border-radius:10px;border:1px solid var(--border);}
+.ts-insight-icon{font-size:18px;flex-shrink:0;}
+.ts-insight-text{font-size:11px;color:rgba(232,232,240,.75);line-height:1.6;}
+
+/* MEMORY result panel */
+.memory-result{display:none;background:linear-gradient(135deg,rgba(96,165,250,.06),rgba(96,165,250,.02));border:1px solid rgba(96,165,250,.2);border-radius:18px;padding:28px;margin-bottom:28px;}
+.memory-result.show{display:block;}
+.mr-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#60a5fa;margin-bottom:14px;}
+.mr-timeline{display:flex;gap:0;overflow-x:auto;padding-bottom:8px;}
+.mr-point{display:flex;flex-direction:column;align-items:center;min-width:90px;position:relative;}
+.mr-point:not(:last-child)::after{content:'';position:absolute;top:16px;left:50%;width:100%;height:2px;background:linear-gradient(90deg,rgba(96,165,250,.4),rgba(96,165,250,.1));}
+.mr-dot{width:32px;height:32px;border-radius:50%;background:rgba(96,165,250,.15);border:2px solid rgba(96,165,250,.4);display:flex;align-items:center;justify-content:center;font-size:13px;margin-bottom:6px;position:relative;z-index:1;}
+.mr-label{font-size:8px;text-align:center;color:var(--muted);letter-spacing:.05em;}
+.mr-val{font-size:10px;font-weight:700;color:#60a5fa;margin-top:2px;}
+
+/* EMOTION result panel */
+.emotion-result{display:none;background:linear-gradient(135deg,rgba(251,146,60,.06),rgba(251,146,60,.02));border:1px solid rgba(251,146,60,.2);border-radius:18px;padding:28px;margin-bottom:28px;}
+.emotion-result.show{display:block;}
+.er-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fb923c;margin-bottom:14px;}
+.er-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.er-item{background:var(--surface);border-radius:10px;padding:14px;border:1px solid var(--border);}
+.er-item-label{font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;}
+.er-item-val{font-size:20px;font-weight:800;font-family:'Syne',sans-serif;color:#fb923c;}
+.er-item-bar{height:4px;background:var(--surface2);border-radius:100px;margin-top:8px;overflow:hidden;}
+.er-item-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,#fb923c,#f59e0b);transition:width 1s ease;}
+
+/* PREDICT result panel */
+.predict-result{display:none;background:linear-gradient(135deg,rgba(245,158,11,.06),rgba(245,158,11,.02));border:1px solid rgba(245,158,11,.2);border-radius:18px;padding:28px;margin-bottom:28px;}
+.predict-result.show{display:block;}
+.pr-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#f59e0b;margin-bottom:14px;}
+.pr-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+@media(max-width:600px){.pr-cards{grid-template-columns:1fr;}.er-grid{grid-template-columns:1fr;}}
+.pr-card{background:var(--surface);border-radius:12px;padding:16px;border:1px solid rgba(245,158,11,.15);text-align:center;}
+.pr-card-pct{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:#f59e0b;margin-bottom:4px;}
+.pr-card-label{font-size:9px;color:var(--muted);letter-spacing:.08em;}
+
+/* Tabs */
+.result-tabs{display:flex;gap:3px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:4px;margin-bottom:32px;flex-wrap:wrap;}
+.tab-btn{flex:1;padding:10px 8px;border:none;background:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;cursor:none;border-radius:10px;transition:all .3s;min-width:60px;letter-spacing:.04em;}
+.tab-btn.active{background:var(--surface2);color:var(--text);}
+.tab-panel{display:none;animation:slideUp .3s ease both;}
+.tab-panel.active{display:block;}
+
+/* Trait rows */
+.section-title{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:18px;}
+.trait-row{display:flex;align-items:center;gap:14px;margin-bottom:13px;opacity:0;transform:translateX(-20px);transition:all .5s ease;}
+.trait-row.visible{opacity:1;transform:translateX(0);}
+.trait-name{width:140px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;flex-shrink:0;}
+.trait-bar-wrap{flex:1;height:8px;background:var(--surface2);border-radius:100px;overflow:hidden;}
+.trait-bar-fill{height:100%;border-radius:100px;width:0;transition:width 1.2s cubic-bezier(.34,1.56,.64,1);}
+.trait-score{width:48px;text-align:right;font-size:12px;flex-shrink:0;}
+
+/* Radar */
+.radar-wrap{display:flex;justify-content:center;margin:24px 0;}
+
+/* Cards */
+.cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px;}
+@media(max-width:600px){.cards-grid{grid-template-columns:1fr;}}
+.info-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:26px;position:relative;overflow:hidden;opacity:0;transform:translateY(20px);transition:all .5s ease;}
+.info-card.visible{opacity:1;transform:translateY(0);}
+.info-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.card-green::before{background:linear-gradient(90deg,var(--C),transparent);}
+.card-red::before{background:linear-gradient(90deg,var(--N),transparent);}
+.card-icon{font-size:22px;margin-bottom:12px;}
+.card-title{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+.card-items{list-style:none;}
+.card-items li{padding:6px 0;font-size:12px;color:rgba(232,232,240,.8);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.card-items li:last-child{border-bottom:none;}
+.card-items li::before{content:'—';color:var(--muted);font-size:9px;}
+
+/* Famous */
+.famous-grid{display:flex;gap:10px;flex-wrap:wrap;}
+.famous-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;opacity:0;transform:scale(.9);transition:all .4s ease;}
+.famous-card.visible{opacity:1;transform:scale(1);}
+.famous-avatar{font-size:22px;width:38px;height:38px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.famous-name{font-size:11px;font-weight:500;}
+.famous-role{font-size:9px;color:var(--muted);}
+
+/* Tips */
+.tip-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start;opacity:0;transform:translateX(20px);transition:all .5s ease;}
+.tip-card.visible{opacity:1;transform:translateX(0);}
+.tip-icon{font-size:18px;flex-shrink:0;margin-top:1px;}
+.tip-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;margin-bottom:4px;}
+.tip-text{font-size:11px;color:var(--muted);line-height:1.65;}
+
+/* Careers */
+.careers-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px;}
+.career-tag{padding:9px 16px;background:var(--surface);border:1px solid var(--border);border-radius:100px;font-size:11px;opacity:0;transform:scale(.9);transition:all .4s ease;cursor:none;}
+.career-tag.visible{opacity:1;transform:scale(1);}
+.career-tag:hover{border-color:var(--mode-color);color:var(--mode-color);}
+
+/* Compat */
+.compat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.compat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.compat-score-num{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;}
+
+/* Share */
+.share-section{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px;text-align:center;margin-bottom:28px;}
+.share-card-preview{background:linear-gradient(135deg,var(--surface2),var(--surface3));border:1px solid var(--border);border-radius:14px;padding:24px;margin:0 auto 20px;max-width:340px;}
+.share-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+.share-btn{padding:9px 16px;border-radius:100px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;font-size:10px;cursor:none;transition:all .3s;display:flex;align-items:center;gap:5px;}
+.share-btn:hover{border-color:var(--mode-color);color:var(--mode-color);}
+
+.retake-wrap{text-align:center;padding-bottom:48px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;}
+.btn-retake{background:none;border:1px solid var(--border);border-radius:100px;padding:14px 36px;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;cursor:none;transition:all .3s;}
+.btn-retake:hover{border-color:rgba(255,255,255,.2);color:var(--text);}
+.btn-save{background:linear-gradient(135deg,var(--mode-color),var(--accent2));border:none;border-radius:100px;padding:14px 28px;color:white;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:none;transition:all .3s;}
+.btn-save:hover{transform:translateY(-2px);}
+.divider{height:1px;background:var(--border);margin:28px 0;}
+</style>
+</head>
+<body>
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursor-ring"></div>
+<canvas id="confetti-canvas"></canvas>
+<canvas id="bg-canvas"></canvas>
+
+<!-- Fixed UI -->
+<button class="top-btn" id="btn-settings" onclick="openSettings()">⚙ Settings</button>
+<button class="top-btn" id="btn-theme" onclick="toggleTheme()">☀ Light</button>
+<button class="top-btn" id="btn-sound" onclick="toggleSound()">🔇 Sound</button>
+<button class="scroll-top" id="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<!-- Mode HUD -->
+<div class="mode-hud" id="mode-hud">
+  <div class="mode-hud-dot" id="mode-hud-dot"></div>
+  <span id="mode-hud-text">Adaptive AI Mode</span>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- Settings drawer -->
+<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:8999;opacity:0;pointer-events:none;transition:opacity .3s;backdrop-filter:blur(4px);" id="settings-overlay" onclick="closeSettings()"></div>
+<div style="position:fixed;top:0;right:0;width:320px;height:100vh;background:var(--surface);border-left:1px solid var(--border);z-index:9000;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);padding:32px 24px;overflow-y:auto;" id="settings-drawer">
+  <button style="position:absolute;top:20px;right:20px;background:none;border:1px solid var(--border);border-radius:50%;width:34px;height:34px;color:var(--muted);font-size:14px;cursor:none;display:flex;align-items:center;justify-content:center;" onclick="closeSettings()">✕</button>
+  <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:4px;">⚙ Settings</div>
+  <div style="font-size:10px;color:var(--muted);margin-bottom:24px;">PSYCHE ULTRA — AI Mode Engine</div>
+  <div style="font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Gemini API Key</div>
+  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-family:'DM Mono',monospace;font-size:11px;margin-bottom:6px;word-break:break-all;" id="sd-key-display">No key saved</div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><div style="width:7px;height:7px;border-radius:50%;" id="sd-key-dot"></div><span style="font-size:10px;" id="sd-key-status">Not connected</span></div>
+  <input style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;cursor:none;margin-bottom:8px;" type="password" id="sd-new-key" placeholder="Paste new key..."/>
+  <button style="width:100%;background:linear-gradient(135deg,var(--accent1),var(--accent2));border:none;border-radius:10px;padding:12px;color:white;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:none;margin-bottom:8px;" onclick="saveKeyFromSettings()">💾 Save Key</button>
+  <button style="width:100%;background:none;border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:11px;color:#ef4444;font-family:'DM Mono',monospace;font-size:11px;cursor:none;" onclick="clearKey()">🗑 Remove Key</button>
+  <div style="height:1px;background:var(--border);margin:20px 0;"></div>
+  <div style="font-size:10px;color:var(--muted);line-height:1.7;">Key stored locally in browser only.<br>Never uploaded anywhere.</div>
+</div>
+
+<div class="container">
+
+<!-- ══════ LANDING — MODE SELECTOR ══════ -->
+<section id="screen-landing" class="screen active" style="position:relative;overflow:hidden;">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+
+  <div style="animation:fadeD .6s ease both;">
+    <div class="logo"><span>PSYCHE</span></div>
+    <div class="logo-tag">Ultra · 6 AI Intelligence Modes</div>
+  </div>
+
+  <p class="landing-sub">Choose your AI mode. Each one thinks differently, asks differently, and reveals a different layer of who you are.</p>
+
+  <div class="mode-grid">
+    <!-- 1. Adaptive -->
+    <div class="mode-card mode-adaptive active-mode" onclick="selectMode('adaptive',this)" id="mc-adaptive">
+      <div class="active-check" style="background:rgba(124,58,237,.2);color:#7c3aed;">✓</div>
+      <div class="mc-glow"></div>
+      <span class="mc-icon">😎</span>
+      <div class="mc-name">Adaptive AI</div>
+      <div class="mc-desc">Questions evolve based on your previous answers in real-time. The AI adjusts difficulty and focus dynamically.</div>
+      <div class="mc-badge" style="border-color:rgba(124,58,237,.4);color:#7c3aed;">Default</div>
+    </div>
+    <!-- 2. Psychologist Brain -->
+    <div class="mode-card mode-psych" onclick="selectMode('psych',this)" id="mc-psych">
+      <div class="active-check" style="background:rgba(244,114,182,.2);color:#f472b6;">✓</div>
+      <div class="mc-glow"></div>
+      <span class="mc-icon">🔥</span>
+      <div class="mc-name">Psychologist Brain</div>
+      <div class="mc-desc">Clinical-grade analysis. AI shows you its psychological reasoning after each question like a real session.</div>
+      <div class="mc-badge" style="border-color:rgba(244,114,182,.3);color:#f472b6;">Deep</div>
+    </div>
+    <!-- 3. Emotion-Aware -->
+    <div class="mode-card mode-emotion" onclick="selectMode('emotion',this)" id="mc-emotion">
+      <div class="active-check" style="background:rgba(251,146,60,.2);color:#fb923c;">✓</div>
+      <div class="mc-glow"></div>
+      <span class="mc-icon">🧠</span>
+      <div class="mc-name">Emotion-Aware AI</div>
+      <div class="mc-desc">Tracks your emotional state throughout the test. Questions shift based on detected stress, joy, or anxiety signals.</div>
+      <div class="mc-badge" style="border-color:rgba(251,146,60,.3);color:#fb923c;">Sensitive</div>
+    </div>
+    <!-- 4. AI Therapist -->
+    <div class="mode-card mode-therapist" onclick="selectMode('therapist',this)" id="mc-therapist">
+      <div class="active-check" style="background:rgba(52,211,153,.2);color:#34d399;">✓</div>
+      <div class="mc-glow"></div>
+      <span class="mc-icon">🧬</span>
+      <div class="mc-name">AI Therapist</div>
+      <div class="mc-desc">Empathetic companion mode. AI responds to each answer with therapeutic insights and validation, like a real session.</div>
+      <div class="mc-badge" style="border-color:rgba(52,211,153,.3);color:#34d399;">Gentle</div>
+    </div>
+    <!-- 5. Memory Engine -->
+    <div class="mode-card mode-memory" onclick="selectMode('memory',this)" id="mc-memory">
+      <div class="active-check" style="background:rgba(96,165,250,.2);color:#60a5fa;">✓</div>
+      <div class="mc-glow"></div>
+      <span class="mc-icon">👁️</span>
+      <div class="mc-name">Memory Engine</div>
+      <div class="mc-desc">Remembers your past sessions and personality drift. Shows how your personality has evolved over time.</div>
+      <div class="mc-badge" style="border-color:rgba(96,165,250,.3);color:#60a5fa;">Smart</div>
+    </div>
+    <!-- 6. Predictive -->
+    <div class="mode-card mode-predict" onclick="selectMode('predict',this)" id="mc-predict">
+      <div class="active-check" style="background:rgba(245,158,11,.2);color:#f59e0b;">✓</div>
+      <div class="mc-glow"></div>
+      <span class="mc-icon">🎯</span>
+      <div class="mc-name">Predictive Engine</div>
+      <div class="mc-desc">AI predicts your personality type after every 5 questions and shows live confidence scores as you answer.</div>
+      <div class="mc-badge" style="border-color:rgba(245,158,11,.3);color:#f59e0b;">Oracle</div>
+    </div>
+  </div>
+
+  <button class="btn-launch" onclick="goToForm()"><span>Launch Selected Mode →</span></button>
+</section>
+
+<!-- ══════ FORM ══════ -->
+<section id="screen-form" class="screen" style="display:none;">
+  <div class="form-card">
+    <div class="form-mode-badge" id="form-mode-badge">😎 Adaptive AI Mode</div>
+    <h2 class="form-title">Tell the AI about you</h2>
+    <p class="form-sub" id="form-sub-text">Your profile shapes every question Gemini will generate.</p>
+
+    <div class="field">
+      <label>Your name</label>
+      <input type="text" id="user-name" placeholder="Enter your name" autocomplete="off"/>
+    </div>
+    <div class="field">
+      <label>Your age</label>
+      <input type="number" id="user-age" placeholder="e.g. 22" min="10" max="100"/>
+    </div>
+    <div class="field">
+      <label>Profession / field of study</label>
+      <input type="text" id="user-profession" placeholder="e.g. CS student, Designer, Doctor..."/>
+    </div>
+    <div class="field">
+      <label>Interests</label>
+      <div class="interest-tags">
+        <div class="int-tag" onclick="toggleInterest(this,'Tech & Coding')">💻 Tech</div>
+        <div class="int-tag" onclick="toggleInterest(this,'Art & Design')">🎨 Art</div>
+        <div class="int-tag" onclick="toggleInterest(this,'Music')">🎵 Music</div>
+        <div class="int-tag" onclick="toggleInterest(this,'Sports')">⚽ Sports</div>
+        <div class="int-tag" onclick="toggleInterest(this,'Business')">📈 Business</div>
+        <div class="int-tag" onclick="toggleInterest(this,'Science')">🔬 Science</div>
+        <div class="int-tag" onclick="toggleInterest(this,'Writing')">📚 Writing</div>
+        <div class="int-tag" onclick="toggleInterest(this,'Gaming')">🎮 Gaming</div>
+        <div class="int-tag" onclick="toggleInterest(this,'Travel')">✈ Travel</div>
+        <div class="int-tag" onclick="toggleInterest(this,'Social causes')">🌍 Social</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Current mood</label>
+      <div class="mood-grid">
+        <div class="mood-btn" onclick="selectMood(this,'😄')"><span>😄</span><span>Great</span></div>
+        <div class="mood-btn" onclick="selectMood(this,'😊')"><span>😊</span><span>Good</span></div>
+        <div class="mood-btn" onclick="selectMood(this,'😐')"><span>😐</span><span>Okay</span></div>
+        <div class="mood-btn" onclick="selectMood(this,'😔')"><span>😔</span><span>Low</span></div>
+        <div class="mood-btn" onclick="selectMood(this,'😤')"><span>😤</span><span>Stressed</span></div>
+      </div>
+    </div>
+
+    <!-- Emotion-Aware Mode: sliders -->
+    <div id="emotion-sliders-wrap" style="display:none;">
+      <div class="emotion-meter">
+        <div class="em-label">Calibrate your emotional state right now</div>
+        <div class="em-sliders">
+          <div class="em-row"><span class="em-name">Stress</span><input type="range" class="em-slider" id="em-stress" min="0" max="10" value="5" oninput="updateEmSlider(this,'#fb923c')"/><span class="em-val" id="em-stress-val">5</span></div>
+          <div class="em-row"><span class="em-name">Energy</span><input type="range" class="em-slider" id="em-energy" min="0" max="10" value="5" oninput="updateEmSlider(this,'#34d399')"/><span class="em-val" id="em-energy-val">5</span></div>
+          <div class="em-row"><span class="em-name">Clarity</span><input type="range" class="em-slider" id="em-clarity" min="0" max="10" value="5" oninput="updateEmSlider(this,'#60a5fa')"/><span class="em-val" id="em-clarity-val">5</span></div>
+          <div class="em-row"><span class="em-name">Openness</span><input type="range" class="em-slider" id="em-openness" min="0" max="10" value="5" oninput="updateEmSlider(this,'#a78bfa')"/><span class="em-val" id="em-openness-val">5</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Therapist mode hint -->
+    <div id="therapist-intro" style="display:none;">
+      <div class="therapist-hint">This session is a safe space. The AI will respond to each of your answers with empathy and insight, as a therapist would — no judgment, only understanding.</div>
+    </div>
+
+    <!-- Memory mode: past sessions -->
+    <div id="memory-history-wrap" style="display:none;">
+      <div class="memory-panel show" id="memory-history-panel">
+        <div class="mem-title">👁️ Your Memory Sessions</div>
+        <div class="mem-chips" id="mem-history-chips">Loading past sessions...</div>
+      </div>
+    </div>
+
+    <button class="btn-go" id="btn-go" onclick="generateQuestions()">Generate with Gemini ✦</button>
+  </div>
+</section>
+
+<!-- ══════ GENERATING ══════ -->
+<section id="screen-generating" class="screen" style="display:none;flex-direction:column;">
+  <div class="gem-spinner">
+    <div class="gem-ring" style="border-top-color:var(--mode-color);border-right-color:var(--accent2);"></div>
+    <div class="gem-ring" style="border-bottom-color:var(--accent3);"></div>
+    <div class="gem-ring" style="border-left-color:var(--E);"></div>
+    <div class="gem-inner">✦</div>
+  </div>
+  <div class="gen-title" id="gen-title">Gemini is crafting your questions...</div>
+  <div class="gen-sub" id="gen-sub">Personalizing 25 questions for your profile</div>
+  <div class="gen-steps">
+    <div class="gen-step" id="gstep-1"><span class="gen-step-icon">👤</span>Reading your profile...</div>
+    <div class="gen-step" id="gstep-2"><span class="gen-step-icon">🧬</span>Calibrating OCEAN model...</div>
+    <div class="gen-step" id="gstep-3"><span class="gen-step-icon">✦</span>Prompting Gemini AI...</div>
+    <div class="gen-step" id="gstep-4"><span class="gen-step-icon">🔍</span>Validating question quality...</div>
+    <div class="gen-step" id="gstep-5"><span class="gen-step-icon">✅</span>Test ready!</div>
+  </div>
+  <div class="gen-stream" id="gen-stream">Initializing AI<span class="stream-cursor">▋</span></div>
+
+  <!-- Predictive: live confidence bars -->
+  <div class="predict-panel" id="predict-panel">
+    <div class="predict-title">🎯 Live Personality Predictions</div>
+    <div class="predict-bars" id="predict-bars-gen"></div>
+  </div>
+</section>
+
+<!-- ══════ TEST ══════ -->
+<section id="screen-test" class="screen" style="display:none;flex-direction:column;">
+  <div class="test-header">
+    <div class="test-logo">PSYCHE <span style="font-size:10px;color:var(--mode-color);margin-left:4px;letter-spacing:.05em;font-family:'DM Mono',monospace;vertical-align:middle;" id="test-mode-label">ULTRA</span></div>
+    <div class="test-meta">
+      <div class="mode-pill" id="test-mode-pill"><div class="mode-pill-dot" id="test-pill-dot"></div><span id="test-pill-text">Adaptive</span></div>
+      <div class="q-counter" id="q-counter">Q1 / 25</div>
+    </div>
+  </div>
+
+  <div class="progress-segs" id="progress-segs"></div>
+  <div class="answer-map" id="answer-map"></div>
+
+  <!-- Emotion Live Bar (emotion-aware mode) -->
+  <div class="emotion-live-bar" id="emotion-live-bar">
+    <div class="elb-title">📊 Live Emotional State</div>
+    <div class="elb-row"><span class="elb-label" style="color:#fb923c;">Stress</span><div class="elb-track"><div class="elb-fill" id="elb-stress" style="background:#fb923c;width:50%;"></div></div><span class="elb-val" id="elb-stress-val">5</span></div>
+    <div class="elb-row"><span class="elb-label" style="color:#34d399;">Energy</span><div class="elb-track"><div class="elb-fill" id="elb-energy" style="background:#34d399;width:50%;"></div></div><span class="elb-val" id="elb-energy-val">5</span></div>
+    <div class="elb-row"><span class="elb-label" style="color:#60a5fa;">Clarity</span><div class="elb-track"><div class="elb-fill" id="elb-clarity" style="background:#60a5fa;width:50%;"></div></div><span class="elb-val" id="elb-clarity-val">5</span></div>
+  </div>
+
+  <!-- Psychologist Brain bubble -->
+  <div class="psych-bubble" id="psych-bubble">
+    <div class="psych-bubble-label">🔥 Psychologist Reading</div>
+    <div id="psych-bubble-text">Analyzing response pattern...</div>
+  </div>
+
+  <!-- Therapist empathy response -->
+  <div class="therapist-response" id="therapist-response">
+    <div class="therapist-response-label">🧬 AI Therapist</div>
+    <div id="therapist-response-text">I hear you...</div>
+  </div>
+
+  <!-- Memory panel -->
+  <div class="memory-panel" id="memory-live-panel">
+    <div class="mem-title">👁️ Pattern Memory</div>
+    <div class="mem-chips" id="memory-live-chips">Building pattern...</div>
+  </div>
+
+  <!-- Predictive hint -->
+  <div class="predict-hint" id="predict-hint">
+    <span>🎯</span><span id="predict-hint-text">Predicting your type...</span>
+  </div>
+
+  <div class="trait-indicator" id="trait-indicator">
+    <span class="trait-dot" id="trait-dot"></span>
+    <span id="trait-name-label">Openness</span>
+  </div>
+
+  <div class="q-card" id="q-card">
+    <div class="q-meta">
+      <span class="q-ai-tag">AI Generated</span>
+      <span class="q-cat" id="q-cat">Openness</span>
+    </div>
+    <div class="q-num" id="q-num">Question 01</div>
+    <div class="q-text" id="q-text">Loading your personalized question...</div>
+    <div class="scale-labels"><span>Strongly Disagree</span><span>Neutral</span><span>Strongly Agree</span></div>
+    <div class="scale-buttons" id="scale-buttons">
+      <button class="scale-btn" onclick="selectAnswer(1)"><span class="btn-emoji">😤</span>1</button>
+      <button class="scale-btn" onclick="selectAnswer(2)"><span class="btn-emoji">😕</span>2</button>
+      <button class="scale-btn" onclick="selectAnswer(3)"><span class="btn-emoji">😐</span>3</button>
+      <button class="scale-btn" onclick="selectAnswer(4)"><span class="btn-emoji">🙂</span>4</button>
+      <button class="scale-btn" onclick="selectAnswer(5)"><span class="btn-emoji">😄</span>5</button>
+    </div>
+    <div class="q-nav">
+      <button class="btn-back" id="btn-back" onclick="prevQuestion()" disabled>← Back</button>
+      <button class="btn-next" id="btn-next" onclick="nextQuestion()">Next →</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ ANALYZING ══════ -->
+<section id="screen-analyzing" class="screen" style="display:none;flex-direction:column;">
+  <div class="analyze-orb">
+    <div class="an-ring" style="border-top-color:var(--mode-color);border-right-color:var(--accent2);"></div>
+    <div class="an-ring" style="border-bottom-color:var(--accent3);"></div>
+    <div class="an-ring" style="border-left-color:var(--E);"></div>
+    <div class="an-brain">🧠</div>
+  </div>
+  <div class="analyze-title" id="analyze-title">Gemini is analyzing your psyche...</div>
+  <div class="analyze-sub">Synthesizing all answers through the lens of your chosen AI mode</div>
+  <div class="analyze-stream" id="analyze-stream">Processing<span class="stream-cursor">▋</span></div>
+
+  <!-- Memory timeline -->
+  <div class="memory-timeline" id="memory-timeline">
+    <div class="mt-title">👁️ Building Your Personality Timeline</div>
+    <div class="mt-items" id="mt-items"></div>
+  </div>
+</section>
+
+<!-- ══════ RESULT ══════ -->
+<section id="screen-result" class="screen" style="display:none;flex-direction:column;text-align:center;">
+  <div style="text-align:center;margin-bottom:44px;">
+    <div class="result-mode-badge" id="result-mode-badge">😎 Adaptive AI Mode</div>
+    <div class="result-name" id="result-name"></div>
+    <span class="result-emoji" id="result-emoji">🧠</span>
+    <div class="result-type" id="result-type">Your Type</div>
+    <div class="result-desc" id="result-desc"></div>
+    <div class="rarity-badge">✦ <span id="rarity-text"></span></div>
+  </div>
+
+  <!-- Mode-specific result panels -->
+  <div class="therapist-session" id="therapist-session">
+    <div class="ts-title">🧬 AI Therapist Session Summary</div>
+    <div class="ts-sub">Key therapeutic insights from your session</div>
+    <div class="ts-insights" id="ts-insights"></div>
+  </div>
+
+  <div class="memory-result" id="memory-result">
+    <div class="mr-title">👁️ Your Personality Timeline</div>
+    <div class="mr-timeline" id="mr-timeline"></div>
+  </div>
+
+  <div class="emotion-result" id="emotion-result">
+    <div class="er-title">🧠 Emotional Intelligence Profile</div>
+    <div class="er-grid" id="er-grid"></div>
+  </div>
+
+  <div class="predict-result" id="predict-result">
+    <div class="pr-title">🎯 Predictive Accuracy Report</div>
+    <div class="pr-cards" id="pr-cards"></div>
+  </div>
+
+  <div class="result-tabs" style="text-align:left;">
+    <button class="tab-btn active" onclick="switchTab('overview',this)">Overview</button>
+    <button class="tab-btn" onclick="switchTab('traits',this)">Traits</button>
+    <button class="tab-btn" onclick="switchTab('growth',this)">Growth</button>
+    <button class="tab-btn" onclick="switchTab('careers',this)">Careers</button>
+    <button class="tab-btn" onclick="switchTab('famous',this)">Famous</button>
+    <button class="tab-btn" onclick="switchTab('share',this)">Share</button>
+  </div>
+
+  <div class="tab-panel active" id="tab-overview" style="text-align:left;">
+    <div class="section-title">Trait Breakdown</div>
+    <div id="traits-bars"></div>
+    <div class="radar-wrap"><canvas id="radar-canvas" width="260" height="260"></canvas></div>
+    <div class="divider"></div>
+    <div class="cards-grid">
+      <div class="info-card card-green" id="strengths-card"><div class="card-icon">✦</div><div class="card-title">Strengths</div><ul class="card-items" id="strengths-list"></ul></div>
+      <div class="info-card card-red" id="weaknesses-card"><div class="card-icon">◈</div><div class="card-title">Blind Spots</div><ul class="card-items" id="weaknesses-list"></ul></div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tab-traits" style="text-align:left;"><div id="traits-detail"></div></div>
+  <div class="tab-panel" id="tab-growth" style="text-align:left;"><div class="section-title">AI Growth Tips</div><div id="tips-list"></div></div>
+  <div class="tab-panel" id="tab-careers" style="text-align:left;">
+    <div class="section-title">Career Paths</div><div class="careers-grid" id="careers-grid"></div>
+    <div class="divider"></div>
+    <div class="section-title">Compatibility</div><div class="compat-grid" id="compat-grid"></div>
+  </div>
+  <div class="tab-panel" id="tab-famous" style="text-align:left;">
+    <div class="section-title">Famous People Like You</div><div class="famous-grid" id="famous-grid"></div>
+    <div class="divider"></div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;font-family:'Fraunces',serif;font-style:italic;font-size:14px;line-height:1.8;color:rgba(232,232,240,.8);" id="ai-summary-box"></div>
+  </div>
+  <div class="tab-panel" id="tab-share" style="text-align:left;">
+    <div class="share-section">
+      <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:6px;">Share Your AI Profile</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:18px;">Generated by Gemini · Mode: <span id="share-mode-label">Adaptive</span></div>
+      <div class="share-card-preview">
+        <span style="font-size:44px;display:block;margin-bottom:10px;" id="share-emoji"></span>
+        <div style="font-family:'Syne',sans-serif;font-size:19px;font-weight:800;background:linear-gradient(135deg,#fff,var(--mode-color));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;" id="share-type"></div>
+        <div style="font-size:9px;color:var(--muted);margin-top:12px;letter-spacing:.1em;">psyche-ultra.vercel.app</div>
+      </div>
+      <div class="share-btns">
+        <button class="share-btn" onclick="copyResult()">📋 Copy</button>
+        <button class="share-btn" onclick="downloadCard()">⬇ Save Card</button>
+        <button class="share-btn" onclick="shareTwitter()">🐦 Twitter</button>
+        <button class="share-btn" onclick="shareWhatsApp()">💬 WhatsApp</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="retake-wrap">
+    <button class="btn-retake" onclick="retake()">↺ Choose New Mode</button>
+    <button class="btn-save" onclick="window.print()">⬇ Save PDF</button>
+  </div>
+</section>
+
+</div><!-- /container -->
+
+<script>
+// ════════════════════════════════════════════
+// CURSOR
+// ════════════════════════════════════════════
+const cursor=document.getElementById('cursor'),ring=document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+'px';cursor.style.top=my+'px';});
+(function aR(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(aR);})();
+document.addEventListener('mouseover',e=>{
+  const hov=e.target.closest('button,.int-tag,.scale-btn,.tab-btn,.career-tag,.mode-card,.share-btn');
+  cursor.classList.toggle('hov',!!hov);ring.classList.toggle('hov',!!hov);
+});
+
+// ════════════════════════════════════════════
+// NEURAL BG
+// ════════════════════════════════════════════
+const bgc=document.getElementById('bg-canvas'),bgx=bgc.getContext('2d');
+let W,H;
+function resBC(){W=bgc.width=innerWidth;H=bgc.height=innerHeight;}
+resBC();window.addEventListener('resize',resBC);
+const nds=Array.from({length:70},()=>({x:Math.random(),y:Math.random(),vx:(Math.random()-.5)*.0003,vy:(Math.random()-.5)*.0003,r:Math.random()*1.5+.5,p:Math.random()*6}));
+(function dBG(){
+  bgx.clearRect(0,0,W,H);
+  nds.forEach(n=>{n.x=(n.x+n.vx+1)%1;n.y=(n.y+n.vy+1)%1;n.p+=.012;});
+  nds.forEach((a,i)=>nds.slice(i+1).forEach(b=>{
+    const dx=(a.x-b.x)*W,dy=(a.y-b.y)*H,d=Math.sqrt(dx*dx+dy*dy);
+    if(d<140){bgx.beginPath();bgx.moveTo(a.x*W,a.y*H);bgx.lineTo(b.x*W,b.y*H);bgx.strokeStyle=`rgba(124,58,237,${.05*(1-d/140)})`;bgx.lineWidth=.5;bgx.stroke();}
+  }));
+  nds.forEach(n=>{bgx.beginPath();bgx.arc(n.x*W,n.y*H,n.r*(1+.3*Math.sin(n.p)),0,Math.PI*2);bgx.fillStyle='rgba(124,58,237,.28)';bgx.fill();});
+  requestAnimationFrame(dBG);
+})();
+
+// ════════════════════════════════════════════
+// TOAST / SOUND / THEME / SCROLL
+// ════════════════════════════════════════════
+let toastT;
+function showToast(m,d=2600){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),d);}
+
+let soundOn=false,actx=null;
+function ensA(){if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();}
+function playT(f,d,v=.07){if(!soundOn)return;ensA();const o=actx.createOscillator(),g=actx.createGain();o.connect(g);g.connect(actx.destination);o.frequency.value=f;g.gain.setValueAtTime(v,actx.currentTime);g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+d);o.start();o.stop(actx.currentTime+d);}
+function playClick(){playT(440,.08);}function playSelect(){playT(520,.12);}
+function playSuccess(){if(!soundOn)return;[523,659,784,1047].forEach((f,i)=>setTimeout(()=>playT(f,.25,.08),i*80));}
+function toggleSound(){soundOn=!soundOn;document.getElementById('btn-sound').textContent=soundOn?'🔊 Sound':'🔇 Sound';if(soundOn){ensA();playT(440,.15);}showToast(soundOn?'Sound on':'Sound off');}
+
+let light=false;
+function toggleTheme(){
+  light=!light;const r=document.documentElement.style;
+  if(light){r.setProperty('--bg','#f0f0f8');r.setProperty('--surface','#fff');r.setProperty('--surface2','#f5f5fa');r.setProperty('--surface3','#eeeef8');r.setProperty('--text','#1a1a2e');r.setProperty('--muted','#8888aa');r.setProperty('--border','rgba(0,0,0,.08)');}
+  else{r.setProperty('--bg','#050508');r.setProperty('--surface','#0d0d14');r.setProperty('--surface2','#12121c');r.setProperty('--surface3','#1a1a28');r.setProperty('--text','#e8e8f0');r.setProperty('--muted','#6b6b82');r.setProperty('--border','rgba(255,255,255,.06)');}
+  document.getElementById('btn-theme').textContent=light?'🌙 Dark':'☀ Light';
+}
+window.addEventListener('scroll',()=>document.getElementById('scroll-top').classList.toggle('vis',scrollY>400));
+
+// ════════════════════════════════════════════
+// KEY STORAGE
+// ════════════════════════════════════════════
+const KEY_STORE='psyche_gemini_key';
+function loadKey(){try{const k=localStorage.getItem(KEY_STORE);if(k&&k.startsWith('AIza'))return k;}catch(e){}return null;}
+function saveKey(k){try{localStorage.setItem(KEY_STORE,k);}catch(e){}}
+function deleteKey(){try{localStorage.removeItem(KEY_STORE);}catch(e){}}
+function clearKey(){deleteKey();GEMINI_KEY='';showToast('🗑 Key removed');updateSettings();}
+function updateSettings(){
+  const k=loadKey();
+  document.getElementById('sd-key-display').textContent=k?k.slice(0,12)+'•••'+k.slice(-4):'No key saved';
+  document.getElementById('sd-key-dot').style.background=k?'#34d399':'var(--muted)';
+  document.getElementById('sd-key-status').textContent=k?'Connected ✓':'Not connected';
+  document.getElementById('sd-key-status').style.color=k?'#34d399':'var(--muted)';
+}
+async function saveKeyFromSettings(){
+  const k=document.getElementById('sd-new-key').value.trim();
+  if(!k||!k.startsWith('AIza')){showToast('❌ Invalid key');return;}
+  showToast('Verifying...');
+  try{const r=await callGemini('Reply OK.',k);if(r){GEMINI_KEY=k;saveKey(k);showToast('✅ Key saved!');updateSettings();document.getElementById('sd-new-key').value='';}}
+  catch(e){showToast('❌ Verification failed');}
+}
+function openSettings(){document.getElementById('settings-drawer').style.transform='translateX(0)';document.getElementById('settings-overlay').style.opacity='1';document.getElementById('settings-overlay').style.pointerEvents='all';updateSettings();}
+function closeSettings(){document.getElementById('settings-drawer').style.transform='translateX(100%)';document.getElementById('settings-overlay').style.opacity='0';document.getElementById('settings-overlay').style.pointerEvents='none';}
+
+// ════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════
+let GEMINI_KEY='';
+let activeMode='adaptive'; // adaptive | psych | emotion | therapist | memory | predict
+let userName='',userAge=0,userProfession='',userInterests=[],userMood='😊';
+let emotionState={stress:5,energy:5,clarity:5,openness:5};
+let QUESTIONS=[],currentQ=0,selectedAnswer=null,answers={};
+let currentScores=null,aiResult=null;
+let therapistInsights=[],memoryPatterns=[],predictHistory=[];
+let lastPrediction='';
+
+const MODES={
+  adaptive:{name:'Adaptive AI',emoji:'😎',color:'#7c3aed',hud:'Adaptive AI Mode — Questions evolve with you'},
+  psych:{name:'Psychologist Brain',emoji:'🔥',color:'#f472b6',hud:'Psychologist Brain Mode — Clinical analysis active'},
+  emotion:{name:'Emotion-Aware AI',emoji:'🧠',color:'#fb923c',hud:'Emotion-Aware Mode — Tracking your emotional state'},
+  therapist:{name:'AI Therapist',emoji:'🧬',color:'#34d399',hud:'AI Therapist Mode — Safe space active'},
+  memory:{name:'Memory Engine',emoji:'👁️',color:'#60a5fa',hud:'Memory Engine — Recording personality patterns'},
+  predict:{name:'Predictive Engine',emoji:'🎯',color:'#f59e0b',hud:'Predictive Engine — Live personality forecasting'},
+};
+const TRAIT_LABELS={O:'Openness',C:'Conscientiousness',E:'Extraversion',A:'Agreeableness',N:'Neuroticism'};
+const TRAIT_COLORS={O:'#a78bfa',C:'#34d399',E:'#f472b6',A:'#60a5fa',N:'#fb923c'};
+const TRAITS_ORDER=['O','C','E','A','N'];
+
+// ════════════════════════════════════════════
+// SCREENS
+// ════════════════════════════════════════════
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>{s.classList.remove('active');s.style.display='none';});
+  const el=document.getElementById(id);el.style.display='flex';el.classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ════════════════════════════════════════════
+// SET MODE COLOR
+// ════════════════════════════════════════════
+function applyModeColor(color){
+  document.documentElement.style.setProperty('--mode-color',color);
+}
+
+// ════════════════════════════════════════════
+// MODE SELECTOR
+// ════════════════════════════════════════════
+function selectMode(mode,el){
+  activeMode=mode;
+  document.querySelectorAll('.mode-card').forEach(c=>c.classList.remove('active-mode'));
+  el.classList.add('active-mode');
+  applyModeColor(MODES[mode].color);
+  playClick();
+  showToast(`${MODES[mode].emoji} ${MODES[mode].name} selected`);
+}
+
+function goToForm(){
+  applyModeColor(MODES[activeMode].color);
+  // Show mode HUD
+  const hud=document.getElementById('mode-hud');
+  document.getElementById('mode-hud-dot').style.background=MODES[activeMode].color;
+  document.getElementById('mode-hud-text').textContent=MODES[activeMode].hud;
+  hud.classList.add('vis');
+
+  // Check API key
+  const saved=loadKey();
+  if(saved){GEMINI_KEY=saved;}
+  if(!GEMINI_KEY){showToast('⚠ No API key — using smart demo mode');;}
+
+  // Update form for mode
+  document.getElementById('form-mode-badge').textContent=`${MODES[activeMode].emoji} ${MODES[activeMode].name}`;
+  document.getElementById('form-mode-badge').style.color=MODES[activeMode].color;
+  document.getElementById('form-mode-badge').style.borderColor=MODES[activeMode].color;
+
+  // Mode-specific form additions
+  document.getElementById('emotion-sliders-wrap').style.display=activeMode==='emotion'?'block':'none';
+  document.getElementById('therapist-intro').style.display=activeMode==='therapist'?'block':'none';
+  document.getElementById('memory-history-wrap').style.display=activeMode==='memory'?'block':'none';
+
+  if(activeMode==='memory')loadMemoryHistory();
+
+  // Form sub text
+  const subs={
+    adaptive:'The AI watches your answers and reshapes upcoming questions in real-time.',
+    psych:'After each answer, you\'ll see a live psychological interpretation from the AI.',
+    emotion:'Your emotional calibration shapes the questions and tone of the entire test.',
+    therapist:'This is a safe, empathetic space. The AI will respond to you as a therapist would.',
+    memory:'Past sessions are loaded. The AI will analyze how your personality has evolved.',
+    predict:'After every 5 questions, the AI predicts your personality type with confidence %.',
+  };
+  document.getElementById('form-sub-text').textContent=subs[activeMode];
+  document.getElementById('btn-go').textContent=`Launch ${MODES[activeMode].name} ✦`;
+
+  showScreen('screen-form');
+}
+
+// ════════════════════════════════════════════
+// FORM
+// ════════════════════════════════════════════
+function toggleInterest(el,val){
+  el.classList.toggle('sel');
+  userInterests=el.classList.contains('sel')?[...userInterests,val]:userInterests.filter(v=>v!==val);
+  playClick();
+}
+function selectMood(el,m){
+  document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');userMood=m;playClick();
+}
+function updateEmSlider(el,color){
+  const key=el.id.replace('em-','');
+  emotionState[key]=+el.value;
+  document.getElementById(el.id+'-val').textContent=el.value;
+  el.style.background=`linear-gradient(to right,${color} ${el.value*10}%,var(--surface3) ${el.value*10}%)`;
+  el.style.setProperty('--thumb-color',color);
+}
+// Style sliders
+document.querySelectorAll('.em-slider').forEach(s=>{
+  const colors={'em-stress':'#fb923c','em-energy':'#34d399','em-clarity':'#60a5fa','em-openness':'#a78bfa'};
+  const c=colors[s.id]||'#7c3aed';
+  s.style.background=`linear-gradient(to right,${c} 50%,var(--surface3) 50%)`;
+  s.addEventListener('input',function(){this.style.background=`linear-gradient(to right,${c} ${this.value*10}%,var(--surface3) ${this.value*10}%)`});
+  s.style.setProperty('--c',c);
+});
+
+// ════════════════════════════════════════════
+// MEMORY: load past sessions
+// ════════════════════════════════════════════
+function loadMemoryHistory(){
+  const sessions=loadMemorySessions();
+  const el=document.getElementById('mem-history-chips');
+  if(!sessions.length){el.innerHTML='<span style="font-size:10px;color:var(--muted);">No past sessions — this will be your first.</span>';return;}
+  el.innerHTML=sessions.map(s=>`<span class="mem-chip">${s.date}: ${s.type}</span>`).join('');
+}
+function loadMemorySessions(){try{return JSON.parse(localStorage.getItem('psyche_sessions')||'[]');}catch(e){return[];}}
+function saveMemorySession(data){
+  try{
+    const sessions=loadMemorySessions();
+    sessions.unshift({date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'}),type:data.type||'Unknown',scores:data.scores,mode:activeMode});
+    localStorage.setItem('psyche_sessions',JSON.stringify(sessions.slice(0,8)));
+  }catch(e){}
+}
+
+// ════════════════════════════════════════════
+// GEMINI CALL
+// ════════════════════════════════════════════
+async function callGemini(prompt,key=GEMINI_KEY){
+  if(!key)throw new Error('no key');
+  const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+  const body={contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.85,maxOutputTokens:2500}};
+  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'API error');}
+  const data=await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+}
+function streamText(el,text,speed=16){
+  return new Promise(r=>{
+    let i=0;el.innerHTML='';
+    const cur='<span class="stream-cursor">▋</span>';
+    const iv=setInterval(()=>{
+      if(i<=text.length){el.innerHTML=text.slice(0,i)+cur;i++;}
+      else{el.innerHTML=text;clearInterval(iv);r();}
+    },speed);
+  });
+}
+
+// ════════════════════════════════════════════
+// GENERATE QUESTIONS
+// ════════════════════════════════════════════
+async function generateQuestions(){
+  userName=document.getElementById('user-name').value.trim();
+  userAge=parseInt(document.getElementById('user-age').value)||20;
+  userProfession=document.getElementById('user-profession').value.trim()||'student';
+  if(!userName){document.getElementById('user-name').focus();showToast('Please enter your name!');return;}
+
+  showScreen('screen-generating');
+  document.getElementById('screen-generating').style.display='flex';
+  document.getElementById('gen-title').textContent=`${MODES[activeMode].emoji} ${MODES[activeMode].name} is crafting your test...`;
+  document.getElementById('gen-sub').textContent=getModeGenSubtitle();
+
+  const gsteps=['gstep-1','gstep-2','gstep-3','gstep-4','gstep-5'];
+  let si=0;
+  const stepIv=setInterval(()=>{
+    if(si>0){const prev=document.getElementById(gsteps[si-1]);if(prev)prev.classList.replace('active','done');}
+    if(si<gsteps.length){document.getElementById(gsteps[si]).classList.add('active');si++;}
+    else clearInterval(stepIv);
+  },700);
+
+  // predictive: show live bars
+  if(activeMode==='predict'){
+    document.getElementById('predict-panel').classList.add('show');
+    buildPredictBarsGen();
+  }
+
+  const streamEl=document.getElementById('gen-stream');
+  const interestStr=userInterests.length?userInterests.join(', '):'general topics';
+
+  const modeInstructions={
+    adaptive:`You are an ADAPTIVE psychologist AI. Generate 25 questions where later questions (Q16-25) are intentionally more probing and specific — designed to drill into patterns revealed by the first 20. Include a "depth" field: 1=surface, 2=medium, 3=deep for each question.`,
+    psych:`You are a CLINICAL psychologist with 30 years experience. Generate 25 diagnostic-quality questions using language a trained therapist would use. Include subtle behavioral and cognitive probes. Also include a "clinicalNote" field with a 1-sentence psychological interpretation of what this question measures.`,
+    emotion:`You are an EMOTION-AWARE AI. This person's current emotional state: Stress=${emotionState.stress}/10, Energy=${emotionState.energy}/10, Clarity=${emotionState.clarity}/10, Openness=${emotionState.openness}/10. Generate questions that are tonally appropriate to their state — if stressed, use gentler questions. Include an "emotionalTone" field: gentle|neutral|challenging.`,
+    therapist:`You are a THERAPEUTIC AI. Generate 25 questions that feel like a therapy session — empathetic, open-ended enough to feel personal, and phrased with warmth. Each question should invite genuine reflection. Include a "therapistNote" field with a compassionate framing of what this question is really asking.`,
+    memory:`You are a MEMORY ENGINE. The person has ${loadMemorySessions().length} past sessions. Generate 25 questions focused on longitudinal patterns — questions about change, growth, and stability over time. Include a "temporalFocus" field: past|present|future.`,
+    predict:`You are a PREDICTIVE AI. Generate 25 questions structured so that every batch of 5 clearly maps to personality prediction checkpoints. Front-load discriminating questions that quickly narrow down personality type. Include a "predictivePower" field: low|medium|high for each question.`,
+  };
+
+  const prompt=`${modeInstructions[activeMode]||modeInstructions.adaptive}
+
+Person profile:
+- Name: ${userName}, Age: ${userAge}, Profession: ${userProfession}
+- Interests: ${interestStr}, Mood: ${userMood}
+
+OCEAN distribution: exactly 5 per trait (O,C,E,A,N). Include reversed scoring on ~40% of questions.
+
+Return ONLY valid JSON array:
+[{"id":1,"text":"question","trait":"O","reversed":false},...]
+No markdown, no explanation.`;
+
+  try{
+    await streamText(streamEl,`${MODES[activeMode].emoji} Sending your profile to Gemini in ${MODES[activeMode].name}...`);
+    const raw=await callGemini(prompt);
+    const match=raw.match(/\[[\s\S]*\]/);
+    let parsed=JSON.parse(match?match[0]:raw);
+    if(!Array.isArray(parsed)||parsed.length<20)throw new Error('Not enough questions');
+    QUESTIONS=parsed.slice(0,25).map((q,i)=>({
+      id:q.id||i+1,text:String(q.text||'').trim(),
+      trait:['O','C','E','A','N'].includes(q.trait)?q.trait:'O',
+      reversed:!!q.reversed,
+      clinicalNote:q.clinicalNote||'',therapistNote:q.therapistNote||'',
+      emotionalTone:q.emotionalTone||'neutral',depth:q.depth||1,
+      predictivePower:q.predictivePower||'medium',temporalFocus:q.temporalFocus||'present',
+    }));
+    await streamText(streamEl,`✅ ${QUESTIONS.length} personalized questions ready for ${MODES[activeMode].name}!`,8);
+    clearInterval(stepIv);gsteps.forEach(s=>{const el=document.getElementById(s);if(el)el.className='gen-step done';});
+    await new Promise(r=>setTimeout(r,700));
+    startTest();
+  }catch(e){
+    console.error('Gen error:',e);
+    await streamText(streamEl,`Using intelligent fallback questions (${e.message||'API unavailable'})`);
+    QUESTIONS=getFallbackQuestions();
+    clearInterval(stepIv);
+    setTimeout(startTest,1000);
+  }
+}
+
+function getModeGenSubtitle(){
+  const s={adaptive:'Questions will adapt to your answer patterns in real-time',psych:'Clinical-grade diagnostic questions being calibrated',emotion:`Tailoring questions to your emotional state (Stress:${emotionState.stress}, Energy:${emotionState.energy})`,therapist:'Creating a warm, therapeutic question space',memory:`Incorporating ${loadMemorySessions().length} past personality sessions`,predict:'Building predictive checkpoints every 5 questions'};
+  return s[activeMode]||s.adaptive;
+}
+
+function getFallbackQuestions(){
+  return [
+    {id:1,text:'I enjoy exploring completely new and unconventional ideas.',trait:'O',reversed:false},{id:2,text:'I have a rich imagination and love creative thinking.',trait:'O',reversed:false},{id:3,text:'I prefer familiar routines over new experiences.',trait:'O',reversed:true},{id:4,text:'I am drawn to abstract concepts and deep philosophical thinking.',trait:'O',reversed:false},{id:5,text:'Art, music, or literature moves me deeply.',trait:'O',reversed:false},
+    {id:6,text:'I plan ahead and organize my work systematically.',trait:'C',reversed:false},{id:7,text:'I keep my environment neat and my life structured.',trait:'C',reversed:false},{id:8,text:'I tend to procrastinate on important tasks.',trait:'C',reversed:true},{id:9,text:'I always think through consequences before acting.',trait:'C',reversed:false},{id:10,text:'I avoid difficult responsibilities when I can.',trait:'C',reversed:true},
+    {id:11,text:'Being around people energizes rather than drains me.',trait:'E',reversed:false},{id:12,text:'I naturally take the lead in group situations.',trait:'E',reversed:false},{id:13,text:'I prefer a quiet evening alone to a social gathering.',trait:'E',reversed:true},{id:14,text:'I find it easy to start conversations with strangers.',trait:'E',reversed:false},{id:15,text:'After socializing I need time alone to recharge.',trait:'E',reversed:true},
+    {id:16,text:'I genuinely enjoy helping others without expecting anything back.',trait:'A',reversed:false},{id:17,text:'I go out of my way to avoid conflict.',trait:'A',reversed:false},{id:18,text:'I sometimes use leverage to get what I want.',trait:'A',reversed:true},{id:19,text:'I trust people easily and give benefit of the doubt.',trait:'A',reversed:false},{id:20,text:'I am skeptical of other people\'s true motives.',trait:'A',reversed:true},
+    {id:21,text:'I frequently feel anxious without a clear reason.',trait:'N',reversed:false},{id:22,text:'My mood changes significantly based on small events.',trait:'N',reversed:false},{id:23,text:'I stay calm and composed under pressure.',trait:'N',reversed:true},{id:24,text:'I often ruminate on past mistakes.',trait:'N',reversed:false},{id:25,text:'I recover from setbacks quickly and move on.',trait:'N',reversed:true},
+  ].map(q=>({...q,clinicalNote:'',therapistNote:'',emotionalTone:'neutral',depth:1,predictivePower:'medium',temporalFocus:'present'}));
+}
+
+function buildPredictBarsGen(){
+  const el=document.getElementById('predict-bars-gen');
+  const types=[{name:'Visionary',col:'#7c3aed'},{name:'Architect',col:'#34d399'},{name:'Caretaker',col:'#60a5fa'},{name:'Empath',col:'#fb923c'},{name:'Executor',col:'#f472b6'}];
+  el.innerHTML=types.map(t=>`<div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:4px;"><div style="height:48px;background:var(--surface);border-radius:8px;width:100%;position:relative;overflow:hidden;"><div id="pbar-${t.name.toLowerCase()}" style="position:absolute;bottom:0;width:100%;height:20%;background:${t.col};border-radius:6px 6px 0 0;transition:height 1s ease;"></div></div><div style="font-size:8px;color:var(--muted);">${t.name}</div></div>`).join('');
+  // Animate random initial bars
+  setTimeout(()=>{
+    types.forEach(t=>{const el=document.getElementById('pbar-'+t.name.toLowerCase());if(el)el.style.height=Math.random()*40+10+'%';});
+  },1500);
+}
+
+// ════════════════════════════════════════════
+// TEST
+// ════════════════════════════════════════════
+function startTest(){
+  currentQ=0;answers={};selectedAnswer=null;therapistInsights=[];memoryPatterns=[];predictHistory=[];
+  buildProgressSegs();buildAnswerMap();
+
+  // Setup test UI for mode
+  const m=MODES[activeMode];
+  document.getElementById('test-pill-dot').style.background=m.color;
+  document.getElementById('test-pill-text').style.color=m.color;
+  document.getElementById('test-pill-text').textContent=m.name;
+  document.getElementById('test-mode-pill').style.borderColor=m.color+'60';
+  document.getElementById('test-mode-pill').style.color=m.color;
+
+  // Show/hide mode-specific panels
+  document.getElementById('emotion-live-bar').classList.toggle('show',activeMode==='emotion');
+  document.getElementById('memory-live-panel').classList.toggle('show',activeMode==='memory');
+  document.getElementById('predict-hint').classList.toggle('show',activeMode==='predict');
+
+  if(activeMode==='emotion')updateEmotionLiveBars();
+
+  showScreen('screen-test');
+  document.getElementById('screen-test').style.display='flex';
+  renderQuestion();
+}
+
+function buildProgressSegs(){
+  document.getElementById('progress-segs').innerHTML=QUESTIONS.map((q,i)=>`<div class="seg" id="seg-${i}" style="background:${TRAIT_COLORS[q.trait]}22;"></div>`).join('');
+}
+function buildAnswerMap(){
+  document.getElementById('answer-map').innerHTML=QUESTIONS.map((_,i)=>`<div class="ans-dot" id="adot-${i}"></div>`).join('');
+}
+function updateProgressSegs(){
+  QUESTIONS.forEach((q,i)=>{
+    const s=document.getElementById(`seg-${i}`);if(!s)return;
+    s.style.background=i<currentQ?TRAIT_COLORS[q.trait]:i===currentQ?TRAIT_COLORS[q.trait]+'80':TRAIT_COLORS[q.trait]+'22';
+  });
+}
+function updateAnswerMap(){
+  QUESTIONS.forEach((_,i)=>{
+    const d=document.getElementById(`adot-${i}`);if(!d)return;
+    d.className='ans-dot';
+    if(i<currentQ)d.classList.add('answered');
+    if(i===currentQ)d.classList.add('current');
+  });
+}
+
+function renderQuestion(){
+  const q=QUESTIONS[currentQ];if(!q)return;
+  selectedAnswer=answers[q.id]||null;
+  document.getElementById('q-counter').textContent=`Q${currentQ+1}/${QUESTIONS.length}`;
+  document.getElementById('trait-dot').style.background=TRAIT_COLORS[q.trait];
+  document.getElementById('trait-name-label').textContent=TRAIT_LABELS[q.trait];
+  const ind=document.getElementById('trait-indicator');
+  ind.style.borderColor=TRAIT_COLORS[q.trait]+'40';ind.style.color=TRAIT_COLORS[q.trait];
+  document.getElementById('q-cat').textContent=TRAIT_LABELS[q.trait];document.getElementById('q-cat').style.color=TRAIT_COLORS[q.trait];
+  const card=document.getElementById('q-card');card.style.animation='none';card.offsetHeight;card.style.animation='slideUp .4s ease both';
+  document.getElementById('q-num').textContent=`Question ${String(currentQ+1).padStart(2,'0')}`;
+  document.getElementById('q-text').textContent=q.text;
+  document.querySelectorAll('.scale-btn').forEach((b,i)=>b.classList.toggle('selected',selectedAnswer===i+1));
+  document.getElementById('btn-next').classList.toggle('active',selectedAnswer!==null);
+  document.getElementById('btn-back').disabled=currentQ===0;
+  updateAnswerMap();updateProgressSegs();
+  // Mode-specific UI
+  if(activeMode==='psych')hidePsychBubble();
+  if(activeMode==='therapist')hideTherapistResponse();
+  if(activeMode==='predict')updatePredictHint();
+  if(activeMode==='memory')updateMemoryPanel();
+  playClick();
+}
+
+function selectAnswer(val){
+  selectedAnswer=val;
+  document.querySelectorAll('.scale-btn').forEach((b,i)=>b.classList.toggle('selected',i+1===val));
+  document.getElementById('btn-next').classList.add('active');
+  playSelect();
+  // Mode reactions on answer
+  if(activeMode==='psych')triggerPsychBubble(val);
+  if(activeMode==='therapist')triggerTherapistResponse(val);
+  if(activeMode==='emotion')updateEmotionFromAnswer(val);
+  if(activeMode==='memory')recordMemoryPattern(val);
+  clearTimeout(window._aa);
+  window._aa=setTimeout(()=>{if(selectedAnswer===val)nextQuestion();},750);
+}
+
+function nextQuestion(){
+  if(selectedAnswer===null)return;
+  answers[QUESTIONS[currentQ].id]=selectedAnswer;
+  currentQ++;
+  if(currentQ>=QUESTIONS.length)runAnalysis();
+  else{
+    // Predictive: run prediction every 5 questions
+    if(activeMode==='predict'&&currentQ%5===0)runQuickPrediction();
+    renderQuestion();
+  }
+}
+function prevQuestion(){if(currentQ===0)return;currentQ--;selectedAnswer=answers[QUESTIONS[currentQ].id]||null;renderQuestion();}
+
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('screen-test').classList.contains('active')){
+    if(['1','2','3','4','5'].includes(e.key))selectAnswer(+e.key);
+    if(e.key==='ArrowLeft')prevQuestion();
+    if(e.key==='ArrowRight'&&document.getElementById('btn-next').classList.contains('active'))nextQuestion();
+  }
+  if(document.getElementById('screen-form').classList.contains('active')&&e.key==='Enter')generateQuestions();
+});
+
+// ════════════════════════════════════════════
+// MODE-SPECIFIC BEHAVIORS
+// ════════════════════════════════════════════
+
+// PSYCHOLOGIST BRAIN: show clinical insight bubble
+function hidePsychBubble(){document.getElementById('psych-bubble').classList.remove('show');}
+function triggerPsychBubble(val){
+  const q=QUESTIONS[currentQ];
+  const valLabel=['','Strongly disagree','Disagree','Neutral','Agree','Strongly agree'][val]||'';
+  const insights={
+    1:`Low ${TRAIT_LABELS[q.trait]?.slice(0,4)} response. This suggests ${q.reversed?'higher':'lower'} trait expression. Worth noting for pattern analysis.`,
+    2:`Below-average response. The subject shows ${q.reversed?'moderate':'mild'} resistance to this trait domain.`,
+    3:`Neutral — this could indicate ambivalence, or this question didn't resonate with their specific context.`,
+    4:`Above-average ${TRAIT_LABELS[q.trait]?.slice(0,4)} expressed here. Consistent with ${q.trait==='N'?'emotional sensitivity':'positive trait expression'}.`,
+    5:`High-end response. Strong signal for ${q.reversed?'reverse-scored (low raw)':'elevated'} ${TRAIT_LABELS[q.trait]?.slice(0,4)} trait presence.`,
+  };
+  const bubble=document.getElementById('psych-bubble');
+  document.getElementById('psych-bubble-text').textContent=insights[val]||'Processing clinical pattern...';
+  bubble.classList.add('show');
+}
+
+// AI THERAPIST: empathy response
+function hideTherapistResponse(){document.getElementById('therapist-response').classList.remove('show');}
+function triggerTherapistResponse(val){
+  const q=QUESTIONS[currentQ];
+  const responses={
+    1:[`That's completely valid to feel that way. Not everyone connects with this — and that itself tells us something meaningful about you.`,`Disagreeing strongly takes awareness. I appreciate you being honest rather than giving the "expected" answer.`],
+    2:[`I hear some hesitation here. That's okay — life is nuanced, and you're navigating it authentically.`],
+    3:[`Being in the middle is its own kind of truth. You're not forcing yourself into a box, which I deeply respect.`],
+    4:[`This resonates with you. That tells me something real about how you show up in the world.`,`I can feel your yes here. This part of you seems very alive and present.`],
+    5:[`This feels deeply true for you. I want you to hold that — it's a real part of who you are.`,`Strong alignment here. That kind of self-awareness is genuinely beautiful.`],
+  };
+  const opts=responses[val]||responses[3];
+  const text=opts[Math.floor(Math.random()*opts.length)];
+  document.getElementById('therapist-response-text').textContent=text;
+  therapistInsights.push({q:q.text.slice(0,40),response:text,val});
+  document.getElementById('therapist-response').classList.add('show');
+}
+
+// EMOTION-AWARE: update live bars
+function updateEmotionLiveBars(){
+  const{stress,energy,clarity}=emotionState;
+  document.getElementById('elb-stress').style.width=(stress*10)+'%';document.getElementById('elb-stress-val').textContent=stress;
+  document.getElementById('elb-energy').style.width=(energy*10)+'%';document.getElementById('elb-energy-val').textContent=energy;
+  document.getElementById('elb-clarity').style.width=(clarity*10)+'%';document.getElementById('elb-clarity-val').textContent=clarity;
+}
+function updateEmotionFromAnswer(val){
+  // Low answers slightly increase stress, high answers increase energy
+  const delta=val>=4?0.3:val<=2?-0.2:0;
+  emotionState.energy=Math.max(0,Math.min(10,emotionState.energy+delta));
+  emotionState.stress=Math.max(0,Math.min(10,emotionState.stress+(val<=2?0.3:-0.15)));
+  emotionState.clarity=Math.max(0,Math.min(10,emotionState.clarity+0.1));
+  updateEmotionLiveBars();
+}
+
+// MEMORY ENGINE: live pattern panel
+function updateMemoryPanel(){
+  const answered=Object.keys(answers);if(answered.length<3)return;
+  const scores=calcScoresPartial();
+  const patterns=[];
+  if(scores.O>scores.C)patterns.push('Prefers freedom over structure');
+  if(scores.E>scores.A)patterns.push('More energized than empathetic');
+  if(scores.N>12)patterns.push('High emotional sensitivity detected');
+  if(scores.C>15)patterns.push('Strong discipline signals');
+  if(patterns.length){
+    document.getElementById('memory-live-chips').innerHTML=patterns.map(p=>`<span class="mem-chip">${p}</span>`).join('');
+  }
+}
+function recordMemoryPattern(val){
+  const q=QUESTIONS[currentQ];
+  memoryPatterns.push({trait:q.trait,val,reversed:q.reversed});
+}
+
+// PREDICTIVE ENGINE: predict type every 5 questions
+async function runQuickPrediction(){
+  const partial=calcScoresPartial();
+  const pTypes=['Visionary','Architect','Caretaker','Empath','Executor','Balanced Soul'];
+  // Simple heuristic prediction (no API call to avoid lag)
+  let best='Balanced Soul';let bestScore=0;
+  if(partial.O>partial.C&&partial.E>12){best='Visionary';bestScore=Math.min(95,60+partial.O*1.5);}
+  else if(partial.C>15&&partial.A>12){best='Caretaker';bestScore=Math.min(92,55+partial.C*1.5);}
+  else if(partial.O>15&&partial.C>15){best='Architect';bestScore=Math.min(90,50+partial.O);}
+  else if(partial.N>15){best='Empath';bestScore=Math.min(88,50+partial.N*1.5);}
+  else if(partial.C>18){best='Executor';bestScore=Math.min(93,55+partial.C);}
+  bestScore=Math.round(bestScore);
+  lastPrediction=`${best} (${bestScore}% confidence)`;
+  predictHistory.push({after:currentQ,type:best,conf:bestScore});
+  showToast(`🎯 Prediction: ${best} — ${bestScore}% confidence`);
+  document.getElementById('predict-hint-text').textContent=`Currently predicting: ${best} · ${bestScore}% confident`;
+}
+function updatePredictHint(){
+  if(lastPrediction)document.getElementById('predict-hint-text').textContent=`🎯 ${lastPrediction}`;
+  else document.getElementById('predict-hint-text').textContent=`Collecting data for first prediction...`;
+}
+
+function calcScoresPartial(){
+  const s={O:0,C:0,E:0,A:0,N:0};
+  const counts={O:0,C:0,E:0,A:0,N:0};
+  QUESTIONS.forEach(q=>{
+    if(answers[q.id]!==undefined){let v=answers[q.id];if(q.reversed)v=6-v;s[q.trait]+=v;counts[q.trait]++;}
+  });
+  Object.keys(s).forEach(k=>{if(counts[k])s[k]=Math.round(s[k]*(5/counts[k]));else s[k]=12;});
+  return s;
+}
+
+// ════════════════════════════════════════════
+// CALCULATE FINAL SCORES
+// ════════════════════════════════════════════
+function calcScores(){
+  const s={O:0,C:0,E:0,A:0,N:0};const counts={O:0,C:0,E:0,A:0,N:0};
+  QUESTIONS.forEach(q=>{let v=answers[q.id]||3;if(q.reversed)v=6-v;s[q.trait]+=v;counts[q.trait]++;});
+  Object.keys(s).forEach(k=>{if(counts[k])s[k]=Math.round(s[k]*(5/counts[k]));});
+  return s;
+}
+
+// ════════════════════════════════════════════
+// RUN ANALYSIS
+// ════════════════════════════════════════════
+async function runAnalysis(){
+  currentScores=calcScores();
+  showScreen('screen-analyzing');
+  document.getElementById('screen-analyzing').style.display='flex';
+  document.getElementById('analyze-title').textContent=`${MODES[activeMode].emoji} ${MODES[activeMode].name} is analyzing your soul...`;
+
+  // Memory mode: show timeline
+  if(activeMode==='memory'){
+    document.getElementById('memory-timeline').classList.add('show');
+    const sessions=loadMemorySessions();
+    const el=document.getElementById('mt-items');
+    sessions.slice(0,4).forEach((s,i)=>{
+      const item=document.createElement('div');item.className='mt-item';item.style.animationDelay=i*.15+'s';
+      item.innerHTML=`<div class="mt-dot"></div><span>${s.date}: ${s.type} · ${s.mode||'classic'} mode</span>`;
+      el.appendChild(item);
+    });
+    if(!sessions.length){el.innerHTML='<div class="mt-item" style="animation-delay:0s"><div class="mt-dot"></div><span>First session — establishing baseline</span></div>';}
+  }
+
+  const streamEl=document.getElementById('analyze-stream');
+  const scoresStr=Object.entries(currentScores).map(([k,v])=>`${TRAIT_LABELS[k]}: ${v}/25`).join(', ');
+  const answersStr=QUESTIONS.map((q,i)=>`Q${i+1}[${q.trait}]: "${q.text.slice(0,50)}..." → ${answers[q.id]||3}`).join('\n');
+
+  const modeAnalysisInstructions={
+    adaptive:`You adapted your analysis based on evolving answer patterns. Note any significant answer pattern shifts between early (Q1-12) and late (Q13-25) questions.`,
+    psych:`You are a clinical psychologist. Provide DSM-adjacent observations, behavioral patterns, and clinical interpretations. Use professional psychological terminology appropriately.`,
+    emotion:`This person's emotional state during the test: Stress=${emotionState.stress}/10, Energy=${emotionState.energy}/10, Clarity=${emotionState.clarity}/10. Factor emotional context into every interpretation.`,
+    therapist:`You are a compassionate therapist writing a post-session note. Write with warmth, validation, and hope. Reference specific emotional themes you noticed. The tone should feel like a caring letter from their therapist.`,
+    memory:`Compare with past sessions: ${JSON.stringify(loadMemorySessions().slice(0,3))}. Analyze personality drift, growth, and stability. What has changed? What remains constant?`,
+    predict:`Prediction history during test: ${JSON.stringify(predictHistory)}. Validate or adjust these predictions. Discuss confidence levels and any surprising pattern deviations.`,
+  };
+
+  const prompt=`You are a master AI psychologist running in ${MODES[activeMode].name} mode.
+
+${modeAnalysisInstructions[activeMode]}
+
+PERSON: ${userName}, ${userAge}, ${userProfession}, interests: ${userInterests.join(',')||'general'}, mood: ${userMood}
+OCEAN SCORES: ${scoresStr}
+ANSWERS: ${answersStr}
+
+Return ONLY valid JSON:
+{
+  "type":"creative personality archetype name",
+  "emoji":"single emoji",
+  "desc":"3-4 sentence description referencing their age, job, interests — feels written specifically for them",
+  "strengths":["s1","s2","s3","s4","s5"],
+  "weaknesses":["w1","w2","w3"],
+  "careers":["c1","c2","c3","c4","c5","c6"],
+  "growthTips":[{"title":"t","text":"specific tip"},{"title":"t","text":"tip"},{"title":"t","text":"tip"}],
+  "famous":[{"emoji":"🧠","name":"Person","role":"role"},{"emoji":"✨","name":"Person2","role":"r"},{"emoji":"🎯","name":"Person3","role":"r"}],
+  "rarity":"X% of people",
+  "summary":"2-paragraph eloquent summary in second person",
+  "compat":[{"type":"type","score":85,"reason":"reason"},{"type":"type","score":72,"reason":"reason"}],
+  "therapistNote":"${activeMode==='therapist'?'A warm 2-sentence therapeutic observation from the session':''}",
+  "memoryInsight":"${activeMode==='memory'?'How has this person changed based on session history':''}",
+  "emotionProfile":"${activeMode==='emotion'?'Analysis of how emotional state influenced responses':''}",
+  "predictionAccuracy":"${activeMode==='predict'?'How accurate were the live predictions':''}",
+  "clinicalObservation":"${activeMode==='psych'?'2-sentence clinical observation':''}",
+  "adaptiveNote":"${activeMode==='adaptive'?'What patterns emerged from early vs late questions':''}",
+  "modeSpecificLabel":"A creative name for this specific ${MODES[activeMode].name} result"
+}`;
+
+  try{
+    await streamText(streamEl,`${MODES[activeMode].emoji} Running deep analysis through ${MODES[activeMode].name}...`);
+    const raw=await callGemini(prompt);
+    const match=raw.match(/\{[\s\S]*\}/);
+    aiResult=JSON.parse(match?match[0]:raw);
+    await streamText(streamEl,'✅ Your AI-generated profile is ready!',8);
+    await new Promise(r=>setTimeout(r,500));
+    if(activeMode==='memory')saveMemorySession({type:aiResult.type,scores:currentScores});
+    showResults();
+  }catch(e){
+    console.error('Analysis error:',e);
+    await streamText(streamEl,'Using intelligent fallback analysis...');
+    aiResult=getStaticProfile(currentScores);
+    if(activeMode==='memory')saveMemorySession({type:aiResult.type,scores:currentScores});
+    setTimeout(showResults,1000);
+  }
+}
+
+// ════════════════════════════════════════════
+// STATIC PROFILE FALLBACK
+// ════════════════════════════════════════════
+function getStaticProfile(s){
+  const pick=(cond,type,emoji,desc,strengths,weaknesses,careers,growthTips,famous,rarity,summary,compat)=>({cond,type,emoji,desc,strengths,weaknesses,careers,growthTips,famous,rarity,summary,compat,therapistNote:'',memoryInsight:'',emotionProfile:'',predictionAccuracy:'',clinicalObservation:'',adaptiveNote:'',modeSpecificLabel:type});
+  const profiles=[
+    pick(s=>s.O>=18&&s.E>=18,'The Visionary','🌟',`${userName}, your creative imagination paired with magnetic social energy makes you a rare force — you don't just see the future, you pull people into it.`,['Visionary creativity','Magnetic charisma','Natural leadership','Bold risk-taker','Infectious energy'],['Overcommits','Loses focus','Skips details'],['Entrepreneur','Creative Director','Filmmaker','Product Manager','Motivational Speaker','Startup Founder'],[{title:'Finish What You Start',text:'Ideas are gold — completion is the refinery.'},{title:'Build Systems',text:'Protect your creative energy with daily routines.'},{title:'Listen Deeply',text:'Your greatest gift is inspiring — your second gift can be truly hearing.'}],[{emoji:'🎨',name:'Steve Jobs',role:'Apple co-founder'},{emoji:'🚀',name:'Elon Musk',role:'Entrepreneur'},{emoji:'🎤',name:'Oprah',role:'Media mogul'}],'~15% of people',`${userName}, you are one of those rare people who makes the room bigger simply by walking in.\n\nLearn to sustain your energy across projects, not just at the start.`,[{type:'The Architect',score:92,reason:'Vision meets execution'},{type:'The Caretaker',score:78,reason:'Grounds your energy'}]),
+    pick(s=>s.C>=18&&s.A>=18,'The Caretaker','🤝',`${userName}, your disciplined empathy makes you the person people trust with their hardest days. You show up. Always.`,['Deeply reliable','Genuine empathy','Exceptional organizer','Natural nurturer','Builds lasting trust'],['Struggles to say no','Neglects own needs','Avoids conflict'],['Doctor','HR Manager','Teacher','Counselor','Social Worker','Project Manager'],[{title:'Protect Your Energy',text:'You cannot pour from an empty cup.'},{title:'Say No Powerfully',text:'One no per week to something low-value.'},{title:'Personal Goals',text:'What does YOUR growth look like this year?'}],[{emoji:'✊',name:'Mother Teresa',role:'Nobel laureate'},{emoji:'🕊',name:'Mandela',role:'Freedom leader'},{emoji:'👩‍⚕',name:'Florence Nightingale',role:'Nursing pioneer'}],'~18% of people',`${userName}, you create safety wherever you go.\n\nThe most sustainable version of your care comes from wholeness, not sacrifice.`,[{type:'The Executor',score:85,reason:'Drive meets heart'},{type:'The Visionary',score:79,reason:'Ideas meet warmth'}]),
+    pick(s=>s.O>=18&&s.C>=18,'The Architect','🔬',`${userName}, you see the world as a system to be understood and perfected. You don't just dream — you design things that last.`,['Strategic thinker','Relentlessly curious','Precise executor','Deep problem solver','Lifelong learner'],['Perfectionism','Can seem distant','Overthinks'],['Software Engineer','Data Scientist','Researcher','Financial Analyst','Professor','Architect'],[{title:'Ship Version 1',text:'Done beats perfect. Always.'},{title:'Invest in People Skills',text:'Technical brilliance opens 50% of doors. EQ opens the rest.'},{title:'Strategic Rest',text:'Your best ideas come when you step away.'}],[{emoji:'💻',name:'Bill Gates',role:'Microsoft founder'},{emoji:'🧪',name:'Marie Curie',role:'Nobel physicist'},{emoji:'📐',name:'Tesla',role:'Inventor'}],'~12% of people',`${userName}, you are rare: genuinely curious AND genuinely disciplined.\n\nTrust the process, but also trust your intuition.`,[{type:'The Visionary',score:93,reason:'You build what they dream'},{type:'The Executor',score:87,reason:'Shared love of systems'}]),
+    pick(s=>s.N>=18,'The Empath','🌊',`${userName}, you feel at frequencies most people never access. Your sensitivity is the source of your deepest creativity and compassion.`,['Extraordinary empathy','Deep emotional intelligence','Highly creative','Authentic','Sees what others miss'],['Prone to overwhelm','Takes criticism personally','Absorbs others\' emotions'],['Psychologist','Writer','Artist','Therapist','UX Researcher','Musician'],[{title:'Emotional Boundaries',text:'Not every feeling around you belongs to you.'},{title:'Channel Into Creation',text:'Art, writing, music — turn feeling into form.'},{title:'Daily Regulation',text:'Breathwork, meditation, or movement. Daily, not just in crisis.'}],[{emoji:'✍',name:'Virginia Woolf',role:'Author'},{emoji:'🎭',name:'Frida Kahlo',role:'Painter'},{emoji:'🎵',name:'Billie Eilish',role:'Artist'}],'~10% of people',`${userName}, where others see events, you feel meaning.\n\nDirecting your sensitivity rather than being directed by it is your life's great work.`,[{type:'The Entertainer',score:83,reason:'They bring lightness to your depth'},{type:'The Executor',score:71,reason:'Their stability grounds your waves'}]),
+    pick(s=>s.C>=18,'The Executor','⚙️',`${userName}, you are the person who actually gets things done. Your discipline is the bedrock great teams are built on.`,['Exceptional discipline','Rock-solid reliability','Goal-driven','Calm under pressure','Turns vision into reality'],['Too rigid sometimes','Workaholic tendencies','Sacrifices joy for productivity'],['Operations Manager','CEO','Project Manager','Accountant','Military Officer','Judge'],[{title:'Schedule Spontaneity',text:'Put unplanned time in your calendar. Rest is fuel.'},{title:'Ask Before Deciding',text:'"What do you think?" gets better answers and stronger teams.'},{title:'Celebrate Process',text:'Character is built in the daily effort, not just the result.'}],[{emoji:'⚔',name:'Napoleon',role:'Military strategist'},{emoji:'📈',name:'Jeff Bezos',role:'Amazon founder'},{emoji:'🏛',name:'Angela Merkel',role:'German Chancellor'}],'~14% of people',`${userName}, the world runs on people like you.\n\nEfficiency isn't the only metric. Meaning and joy are also worth pursuing.`,[{type:'The Visionary',score:86,reason:'They dream; you build'},{type:'The Caretaker',score:82,reason:'Drive meets heart'}]),
+    pick(()=>true,'The Balanced Soul','🌿',`${userName}, your rare adaptability and equanimity let you meet each situation with exactly what it needs. You are the calm in every storm.`,['Highly adaptable','Level-headed','Easy to work with','Brings balance','Multi-perspective thinker'],['May lack conviction','Can blend in','Sometimes indecisive'],['Consultant','General Manager','Diplomat','Coordinator','Policy Analyst','Mediator'],[{title:'Choose Your North Star',text:'Flexibility without direction feels like drifting. Pick one thing to be known for.'},{title:'Take Stronger Positions',text:'"I believe X because Y." Practice saying it.'},{title:'Seek Discomfort',text:'Growth lives just outside your comfort zone. Once a week, go there.'}],[{emoji:'🧘',name:'Barack Obama',role:'44th US President'},{emoji:'🌍',name:'Dalai Lama',role:'Spiritual leader'},{emoji:'🎓',name:'Warren Buffett',role:'Legendary investor'}],'~14% of people',`${userName}, you are genuinely rare: adaptable without losing yourself.\n\nPair that flexibility with a clearer direction and nothing can stop you.`,[{type:'The Executor',score:79,reason:'Decisiveness meets flexibility'},{type:'The Visionary',score:76,reason:'Vision meets adaptability'}]),
+  ];
+  return profiles.find(p=>p.cond(s));
+}
+
+// ════════════════════════════════════════════
+// SHOW RESULTS
+// ════════════════════════════════════════════
+function showResults(){
+  showScreen('screen-result');
+  document.getElementById('screen-result').style.display='flex';
+  playSuccess();launchConfetti();
+
+  const m=MODES[activeMode];
+  document.getElementById('result-mode-badge').textContent=`${m.emoji} ${m.name}`;
+  document.getElementById('result-mode-badge').style.color=m.color;
+  document.getElementById('result-mode-badge').style.borderColor=m.color;
+  document.getElementById('result-name').textContent=`${userMood} ${userName}, ${userAge} · ${userProfession}`;
+  document.getElementById('result-emoji').textContent=aiResult.emoji||'🧠';
+  document.getElementById('result-type').textContent=aiResult.type||'Your Type';
+  document.getElementById('result-desc').textContent=aiResult.desc||'';
+  document.getElementById('rarity-text').textContent=aiResult.rarity||'Unique type';
+  document.getElementById('share-emoji').textContent=aiResult.emoji||'🧠';
+  document.getElementById('share-type').textContent=aiResult.type||'';
+  document.getElementById('share-mode-label').textContent=m.name;
+
+  buildTraitBars(currentScores);
+  setTimeout(()=>drawRadar(currentScores),800);
+
+  const sl=document.getElementById('strengths-list'),wl=document.getElementById('weaknesses-list');
+  sl.innerHTML=(aiResult.strengths||[]).map(s=>`<li>${s}</li>`).join('');
+  wl.innerHTML=(aiResult.weaknesses||[]).map(w=>`<li>${w}</li>`).join('');
+  setTimeout(()=>{document.getElementById('strengths-card').classList.add('visible');document.getElementById('weaknesses-card').classList.add('visible');},500);
+
+  buildFamous(aiResult.famous||[]);buildTraitDetails(currentScores);
+  buildGrowthTips(aiResult.growthTips||[]);buildCareers(aiResult.careers||[]);buildCompat(aiResult.compat||[]);
+  document.getElementById('ai-summary-box').textContent=aiResult.summary||'';
+
+  // Mode-specific result panels
+  if(activeMode==='therapist')buildTherapistSession();
+  if(activeMode==='memory')buildMemoryResult();
+  if(activeMode==='emotion')buildEmotionResult();
+  if(activeMode==='predict')buildPredictResult();
+}
+
+function buildTraitBars(scores){
+  const el=document.getElementById('traits-bars');el.innerHTML='';
+  TRAITS_ORDER.forEach((k,i)=>{
+    const sc=scores[k]||0,pct=(sc/25)*100;
+    const levels=['Very Low','Low','Moderate','High','Very High'];
+    const lv=levels[Math.min(Math.floor(sc/5),4)];
+    const row=document.createElement('div');row.className='trait-row';
+    row.innerHTML=`<div class="trait-name" style="color:${TRAIT_COLORS[k]}">${TRAIT_LABELS[k]}</div><div class="trait-bar-wrap"><div class="trait-bar-fill" style="background:${TRAIT_COLORS[k]}"></div></div><div class="trait-score" style="color:${TRAIT_COLORS[k]}">${sc}/25</div>`;
+    el.appendChild(row);
+    setTimeout(()=>{row.classList.add('visible');row.querySelector('.trait-bar-fill').style.width=pct+'%';},200+i*150);
+  });
+}
+function buildFamous(list){
+  const fg=document.getElementById('famous-grid');fg.innerHTML='';
+  list.forEach((f,i)=>{
+    const c=document.createElement('div');c.className='famous-card';
+    c.innerHTML=`<div class="famous-avatar">${f.emoji||'🧠'}</div><div><div class="famous-name">${f.name}</div><div class="famous-role">${f.role}</div></div>`;
+    fg.appendChild(c);setTimeout(()=>c.classList.add('visible'),600+i*120);
+  });
+}
+function buildTraitDetails(scores){
+  const TDESC={O:'Imagination, curiosity, and openness to new experiences.',C:'Discipline, organization, and goal-directed behavior.',E:'Sociability, assertiveness, and positive emotionality.',A:'Cooperativeness, empathy, and social harmony.',N:'Emotional sensitivity, anxiety, and moodiness.'};
+  document.getElementById('traits-detail').innerHTML=TRAITS_ORDER.map(k=>{
+    const sc=scores[k]||0,pct=(sc/25)*100;
+    return `<div class="tip-card visible" style="margin-bottom:12px;"><div class="tip-icon" style="color:${TRAIT_COLORS[k]};font-size:14px;font-weight:800;">${k}</div><div><div class="tip-title" style="color:${TRAIT_COLORS[k]}">${TRAIT_LABELS[k]} — ${sc}/25</div><div style="margin:8px 0;height:5px;background:var(--surface2);border-radius:100px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${TRAIT_COLORS[k]};border-radius:100px;transition:width 1s ease;"></div></div><div class="tip-text">${TDESC[k]}</div></div></div>`;
+  }).join('');
+}
+function buildGrowthTips(tips){
+  const el=document.getElementById('tips-list');el.innerHTML='';const icons=['💡','🎯','🌱'];
+  tips.forEach((tip,i)=>{
+    const t=typeof tip==='string'?{title:`Tip ${i+1}`,text:tip}:tip;
+    const c=document.createElement('div');c.className='tip-card';
+    c.innerHTML=`<div class="tip-icon">${icons[i%3]}</div><div><div class="tip-title">${t.title||''}</div><div class="tip-text">${t.text||t}</div></div>`;
+    el.appendChild(c);setTimeout(()=>c.classList.add('visible'),200+i*200);
+  });
+}
+function buildCareers(careers){
+  const cg=document.getElementById('careers-grid');cg.innerHTML='';
+  careers.forEach((c,i)=>{
+    const tag=document.createElement('span');tag.className='career-tag';tag.textContent='→ '+c;
+    cg.appendChild(tag);setTimeout(()=>tag.classList.add('visible'),300+i*80);
+  });
+}
+function buildCompat(compat){
+  document.getElementById('compat-grid').innerHTML=(compat||[]).map(c=>`<div class="compat-card"><div style="font-size:12px;font-weight:600;margin-bottom:4px;">${c.type}</div><div class="compat-score-num" style="color:var(--accent2)">${c.score}%</div><div style="height:4px;background:var(--surface2);border-radius:100px;margin:8px 0;overflow:hidden;"><div style="height:100%;width:${c.score}%;background:linear-gradient(90deg,var(--mode-color),var(--accent2));border-radius:100px;"></div></div><div style="font-size:9px;color:var(--muted);">${c.reason}</div></div>`).join('');
+}
+
+// ── MODE SPECIFIC RESULT BUILDERS ──
+function buildTherapistSession(){
+  document.getElementById('therapist-session').classList.add('show');
+  const el=document.getElementById('ts-insights');
+  const insights=therapistInsights.slice(0,3);
+  if(aiResult.therapistNote)insights.unshift({response:aiResult.therapistNote,q:'Session summary'});
+  el.innerHTML=insights.map(i=>`<div class="ts-insight"><div class="ts-insight-icon">🧬</div><div class="ts-insight-text"><strong style="font-size:10px;color:var(--muted);">"${i.q||'Observation'}"</strong><br>${i.response}</div></div>`).join('');
+}
+
+function buildMemoryResult(){
+  document.getElementById('memory-result').classList.add('show');
+  const sessions=loadMemorySessions();
+  const el=document.getElementById('mr-timeline');
+  const allSessions=[...sessions.slice(0,4).reverse(),{date:'Now',type:aiResult.type,scores:currentScores}];
+  el.innerHTML=allSessions.map((s,i)=>`<div class="mr-point"><div class="mr-dot">${i===allSessions.length-1?'★':'○'}</div><div class="mr-label">${s.date}</div><div class="mr-val">${(s.type||'?').split(' ').pop()}</div></div>`).join('');
+  if(aiResult.memoryInsight){const note=document.createElement('p');note.style.cssText='font-size:11px;color:var(--muted);margin-top:16px;line-height:1.6;';note.textContent=aiResult.memoryInsight;document.getElementById('memory-result').appendChild(note);}
+}
+
+function buildEmotionResult(){
+  document.getElementById('emotion-result').classList.add('show');
+  const el=document.getElementById('er-grid');
+  const items=[
+    {label:'Stress Level',val:emotionState.stress,pct:emotionState.stress*10},
+    {label:'Energy Level',val:emotionState.energy,pct:emotionState.energy*10},
+    {label:'Mental Clarity',val:emotionState.clarity,pct:emotionState.clarity*10},
+    {label:'Final Stress',val:Math.round(emotionState.stress*10)/10,pct:emotionState.stress*10},
+  ];
+  el.innerHTML=items.map(i=>`<div class="er-item"><div class="er-item-label">${i.label}</div><div class="er-item-val">${i.val}/10</div><div class="er-item-bar"><div class="er-item-fill" style="width:${i.pct}%"></div></div></div>`).join('');
+}
+
+function buildPredictResult(){
+  document.getElementById('predict-result').classList.add('show');
+  const el=document.getElementById('pr-cards');
+  if(!predictHistory.length){el.innerHTML='<div class="pr-card"><div class="pr-card-pct">N/A</div><div class="pr-card-label">No predictions made</div></div>';return;}
+  const final=predictHistory[predictHistory.length-1];
+  el.innerHTML=[
+    `<div class="pr-card"><div class="pr-card-pct">${predictHistory.length}</div><div class="pr-card-label">Predictions made</div></div>`,
+    `<div class="pr-card"><div class="pr-card-pct">${final.conf}%</div><div class="pr-card-label">Final confidence</div></div>`,
+    `<div class="pr-card"><div class="pr-card-pct">${final.type===aiResult.type?'✓':'~'}</div><div class="pr-card-label">Final: ${final.type}</div></div>`,
+  ].join('');
+}
+
+// ════════════════════════════════════════════
+// RADAR
+// ════════════════════════════════════════════
+function drawRadar(scores){
+  const c=document.getElementById('radar-canvas'),cx=c.getContext('2d');
+  const sz=260,cx0=sz/2,cy0=sz/2,r=90;cx.clearRect(0,0,sz,sz);
+  const keys=['O','C','E','A','N'],labs=['Open','Consc.','Extra.','Agree.','Neuro.'];
+  const angs=keys.map((_,i)=>i*(Math.PI*2/5)-Math.PI/2);
+  [.2,.4,.6,.8,1].forEach(p=>{cx.beginPath();angs.forEach((a,i)=>{const x=cx0+Math.cos(a)*r*p,y=cy0+Math.sin(a)*r*p;i?cx.lineTo(x,y):cx.moveTo(x,y);});cx.closePath();cx.strokeStyle='rgba(255,255,255,.06)';cx.stroke();});
+  angs.forEach(a=>{cx.beginPath();cx.moveTo(cx0,cy0);cx.lineTo(cx0+Math.cos(a)*r,cy0+Math.sin(a)*r);cx.strokeStyle='rgba(255,255,255,.06)';cx.stroke();});
+  cx.beginPath();keys.forEach((k,i)=>{const p=(scores[k]||0)/25,a=angs[i];i?cx.lineTo(cx0+Math.cos(a)*r*p,cy0+Math.sin(a)*r*p):cx.moveTo(cx0+Math.cos(a)*r*p,cy0+Math.sin(a)*r*p);});
+  cx.closePath();const mc=MODES[activeMode].color;
+  cx.fillStyle=mc+'25';cx.fill();cx.strokeStyle=mc+'cc';cx.lineWidth=2;cx.stroke();
+  keys.forEach((k,i)=>{const p=(scores[k]||0)/25,a=angs[i];cx.beginPath();cx.arc(cx0+Math.cos(a)*r*p,cy0+Math.sin(a)*r*p,4,0,Math.PI*2);cx.fillStyle=TRAIT_COLORS[k];cx.fill();});
+  cx.textAlign='center';cx.textBaseline='middle';cx.font='9px DM Mono,monospace';
+  angs.forEach((a,i)=>{cx.fillStyle=TRAIT_COLORS[keys[i]];cx.fillText(labs[i],cx0+Math.cos(a)*(r+20),cy0+Math.sin(a)*(r+20));});
+}
+
+// ════════════════════════════════════════════
+// CONFETTI
+// ════════════════════════════════════════════
+function launchConfetti(){
+  const c=document.getElementById('confetti-canvas');c.width=innerWidth;c.height=innerHeight;
+  const cx=c.getContext('2d');
+  const mc=MODES[activeMode].color;
+  const cols=[mc,'#06b6d4','#f59e0b','#34d399','#f472b6','#60a5fa'];
+  const ps=Array.from({length:100},()=>({x:Math.random()*c.width,y:-10,r:Math.random()*5+2,col:cols[~~(Math.random()*cols.length)],vx:(Math.random()-.5)*3,vy:Math.random()*3+1.5,spin:Math.random()*Math.PI,sv:(Math.random()-.5)*.15}));
+  let fr=0;(function af(){cx.clearRect(0,0,c.width,c.height);ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.spin+=p.sv;p.vy+=.04;cx.save();cx.translate(p.x,p.y);cx.rotate(p.spin);cx.fillStyle=p.col;cx.fillRect(-p.r,-p.r/2,p.r*2,p.r);cx.restore();});if(++fr<150)requestAnimationFrame(af);else cx.clearRect(0,0,c.width,c.height);})();
+}
+
+// ════════════════════════════════════════════
+// TABS
+// ════════════════════════════════════════════
+function switchTab(name,btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');document.getElementById('tab-'+name).classList.add('active');
+  if(name==='overview'&&currentScores){setTimeout(()=>{buildTraitBars(currentScores);drawRadar(currentScores);},100);}
+  playClick();
+}
+
+// ════════════════════════════════════════════
+// SHARE & EXPORT
+// ════════════════════════════════════════════
+function copyResult(){
+  const txt=`${MODES[activeMode].emoji} My PSYCHE ${MODES[activeMode].name} Profile: ${aiResult?.type} ${aiResult?.emoji}\n\n${(aiResult?.desc||'').slice(0,200)}\n\npsyche-ultra.vercel.app`;
+  navigator.clipboard.writeText(txt).then(()=>showToast('Copied! 📋'));playClick();
+}
+function shareTwitter(){window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`My AI personality: "${aiResult?.type}" ${aiResult?.emoji}\nMode: ${MODES[activeMode].name}\n\npsyche-ultra.vercel.app`)}`,'_blank');}
+function shareWhatsApp(){window.open(`https://wa.me/?text=${encodeURIComponent(`🧠 ${aiResult?.type} ${aiResult?.emoji}\n${(aiResult?.desc||'').slice(0,100)}...\n\npsyche-ultra.vercel.app`)}`,'_blank');}
+function downloadCard(){
+  const c=document.createElement('canvas');c.width=800;c.height=480;
+  const cx=c.getContext('2d');
+  const g=cx.createLinearGradient(0,0,800,480);g.addColorStop(0,'#050508');g.addColorStop(1,'#0d0d14');
+  cx.fillStyle=g;cx.fillRect(0,0,800,480);
+  const mc=MODES[activeMode].color;
+  const bg=cx.createLinearGradient(0,0,800,0);bg.addColorStop(0,mc);bg.addColorStop(1,'#06b6d4');
+  cx.fillStyle=bg;cx.fillRect(0,0,800,4);
+  cx.strokeStyle=mc+'55';cx.lineWidth=1.5;cx.strokeRect(1,1,798,478);
+  cx.font='68px serif';cx.textAlign='center';cx.fillText(aiResult?.emoji||'🧠',400,130);
+  cx.font='bold 46px Arial Black';cx.fillStyle='#fff';cx.fillText(aiResult?.type||'',400,200);
+  cx.font='14px DM Mono';cx.fillStyle='rgba(232,232,240,.4)';cx.fillText(`${userName} · ${userAge} · ${MODES[activeMode].name}`,400,232);
+  cx.font='italic 13px Georgia';cx.fillStyle='rgba(232,232,240,.65)';
+  const words=(aiResult?.desc||'').split(' ');let line='',y=272;
+  words.forEach(w=>{const t=line+w+' ';if(cx.measureText(t).width>620&&line){cx.fillText(line.trim(),400,y);line=w+' ';y+=21;}else line=t;});cx.fillText(line.trim(),400,y);
+  cx.font='bold 10px DM Mono';cx.fillStyle=mc+'bb';cx.fillText(`✦ PSYCHE ULTRA · ${MODES[activeMode].name} · psyche-ultra.vercel.app`,400,460);
+  const a=document.createElement('a');a.download=`${userName}_${(aiResult?.type||'').replace(/ /g,'_')}_PSYCHE.png`;a.href=c.toDataURL();a.click();
+  showToast('Card saved! ⬇');playClick();
+}
+
+// ════════════════════════════════════════════
+// RETAKE
+// ════════════════════════════════════════════
+function retake(){
+  currentQ=0;answers={};selectedAnswer=null;currentScores=null;aiResult=null;QUESTIONS=[];
+  therapistInsights=[];memoryPatterns=[];predictHistory=[];lastPrediction='';
+  userInterests=[];userMood='😊';emotionState={stress:5,energy:5,clarity:5,openness:5};
+  document.querySelectorAll('.int-tag,.mood-btn').forEach(e=>e.classList.remove('sel'));
+  document.querySelectorAll('.gen-step').forEach(s=>s.className='gen-step');
+  document.getElementById('mode-hud').classList.remove('vis');
+  document.getElementById('memory-timeline').classList.remove('show');
+  showScreen('screen-landing');playClick();
+}
+
+// ════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════
+(function init(){
+  const k=loadKey();
+  if(k){GEMINI_KEY=k;showToast(`✅ Gemini connected · ${k.slice(0,10)}...`);}
+  updateSettings();
+  // Pre-select adaptive mode
+  selectMode('adaptive',document.getElementById('mc-adaptive'));
+  showScreen('screen-landing');
+})();
+</script>
+</body>
+</html>
